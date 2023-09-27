@@ -1,0 +1,8 @@
+apiVersion: addon.open-cluster-management.io/v1alpha1
+kind: ClusterManagementAddOn
+metadata:
+  name: multicluster-resiliency-addon
+spec:
+  addOnMeta:
+    displayName: Multicluster Resiliency Addon
+    description: "multicluster-resiliency-addon TODO add description"

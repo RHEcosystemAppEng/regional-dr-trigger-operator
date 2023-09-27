@@ -1,0 +1,76 @@
+---
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint the project
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Run gofmt
+        run: go fmt ./...
+
+      - name: Lint code
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          args: --timeout=10m
+
+      - name: Lint Containerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Containerfile
+
+  test:
+    runs-on: ubuntu-latest
+    name: Test the project
+    needs: lint
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: stable
+          check-latest: true
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Build the project
+        run: make build
+
+  image:
+    runs-on: ubuntu-latest
+    name: Build the image
+    needs: lint
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Cache image layers
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.local/share/containers/storage/
+          key: ${{ runner.os }}-image-${{ hashFiles('**/Containerfile') }}
+
+      - name: Build the image
+        run: make build/image

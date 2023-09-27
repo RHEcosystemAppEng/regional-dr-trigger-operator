@@ -1,0 +1,23 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: multicluster-resiliency-addon-manager
+  labels:
+    app: multicluster-resiliency-addon-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: multicluster-resiliency-addon-manager
+  template:
+    metadata:
+      labels:
+        app: multicluster-resiliency-addon-manager
+    spec:
+      serviceAccountName: multicluster-resiliency-addon-sa
+      containers:
+      - name: multicluster-resiliency-addon-manager
+        image: quay.io/ecosystem-appeng/multicluster-resiliency-addon
+        imagePullPolicy: Always
+        args:
+          - manager
