@@ -3,22 +3,33 @@
 package cmd
 
 import (
-	"context"
+	goflag "flag"
+	"time"
+
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/cmd/agent"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/cmd/manager"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"golang.org/x/exp/rand"
+	cliflag "k8s.io/component-base/cli/flag"
 )
 
-const (
-	addonName      = "multicluster-resiliency-addon"
-	agentNamespace = "open-cluster-management-agent-addon"
-)
+func Execute() error {
+	rand.Seed(uint64(time.Now().UTC().UnixNano()))
 
-var mcraCmd = cobra.Command{
-	Use:          "mcra",
-	Short:        "Multicluster Resiliency Addon",
-	Long:         "multicluster-resiliency-addon TODO add description",
-	SilenceUsage: true,
-}
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
-func Run(ctx context.Context) error {
-	return mcraCmd.ExecuteContext(ctx)
+	mcraCmd := &cobra.Command{
+		Use:          "mcra",
+		Short:        "Multicluster Resiliency Addon",
+		SilenceUsage: true,
+		Version:      version.Get().String(),
+	}
+
+	mcraCmd.AddCommand(manager.GetCommand())
+	mcraCmd.AddCommand(agent.GetCommand())
+
+	return mcraCmd.Execute()
 }

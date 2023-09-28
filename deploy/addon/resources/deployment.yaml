@@ -18,6 +18,6 @@ spec:
       containers:
       - name: multicluster-resiliency-addon-manager
         image: quay.io/ecosystem-appeng/multicluster-resiliency-addon
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         args:
           - manager

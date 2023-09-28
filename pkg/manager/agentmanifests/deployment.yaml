@@ -1,0 +1,33 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: multicluster-resiliency-addon-agent
+  namespace: {{ .AgentNamespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      addon: multicluster-resiliency-addon-agent
+  template:
+    metadata:
+      labels:
+        addon: multicluster-resiliency-addon-agent
+    spec:
+      containers:
+        - name: multicluster-resiliency-addon-agent
+          image: quay.io/ecosystem-appeng/multicluster-resiliency-addon:devel
+          imagePullPolicy: IfNotPresent
+          args:
+            - agent
+            - --spoke-name={{ .SpokeName }}
+            - --hub-kubeconfig=/etc/hub/kubeconfig
+            - --agent-namespace={{ .AgentNamespace }}
+            - --addon-name={{ .AddonName }}
+          volumeMounts:
+            - name: hub-kubeconfig
+              mountPath: /etc/hub/
+              readOnly: true
+      volumes:
+        - name: hub-kubeconfig
+          secret:
+            secretName: {{ .KubeConfigSecret }}
