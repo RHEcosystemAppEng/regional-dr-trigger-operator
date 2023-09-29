@@ -1,13 +1,14 @@
-package agent
+// Copyright (c) 2023 Red Hat, Inc.
+
+package cmd
 
 import (
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/agent"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version"
-	"github.com/spf13/cobra"
 	"open-cluster-management.io/addon-framework/pkg/cmd/factory"
 )
 
-func GetCommand() *cobra.Command {
+func init() {
 	agtOpts := &agent.Options{}
 	agt := agent.Agent{Options: agtOpts}
 
@@ -22,5 +23,5 @@ func GetCommand() *cobra.Command {
 	agentCmd.Flags().StringVar(&agtOpts.AddonName, "addon-name", "blabla", "TODO")
 	agentCmd.Flags().StringVar(&agtOpts.AgentNamespace, "agent-namespace", "blabla", "TODO")
 
-	return agentCmd
+	mcraCmd.AddCommand(agentCmd)
 }

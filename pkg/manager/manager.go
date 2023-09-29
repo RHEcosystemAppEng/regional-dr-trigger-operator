@@ -18,7 +18,7 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/utils"
 )
 
-//go:embed agentmanifests
+//go:embed agenttemplates
 var FS embed.FS
 
 const (
@@ -48,8 +48,8 @@ func Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	agentAddon, err := addonfactory.
-		NewAgentAddonFactory(addonName, FS, "agentmanifests").
-		WithGetValuesFuncs(getValues).
+		NewAgentAddonFactory(addonName, FS, "agenttemplates").
+		WithGetValuesFuncs(generateTemplateValues).
 		WithAgentRegistrationOption(regOpts).
 		WithInstallStrategy(agent.InstallAllStrategy(agentNamespace)).
 		BuildTemplateAgentAddon()
@@ -69,11 +69,10 @@ func Run(ctx context.Context, kubeConfig *rest.Config) error {
 
 	<-ctx.Done()
 
-	klog.Info("manager done")
 	return nil
 }
 
-func getValues(cluster *v1.ManagedCluster, addon *v1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
+func generateTemplateValues(cluster *v1.ManagedCluster, addon *v1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
 	values := Values{
 		KubeConfigSecret: fmt.Sprintf("%s-hub-kubeconfig", addon.Name),
 		SpokeName:        cluster.Name,

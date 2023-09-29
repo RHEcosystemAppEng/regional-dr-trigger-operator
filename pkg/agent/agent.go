@@ -48,6 +48,5 @@ func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
 
 	<-ctx.Done()
 
-	klog.Info("agent done")
 	return nil
 }
