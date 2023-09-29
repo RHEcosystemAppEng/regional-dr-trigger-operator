@@ -13,6 +13,7 @@ spec:
       labels:
         addon: multicluster-resiliency-addon-agent
     spec:
+      serviceAccountName: multicluster-resiliency-addon-agent-sa
       containers:
         - name: multicluster-resiliency-addon-agent
           image: quay.io/ecosystem-appeng/multicluster-resiliency-addon:devel
