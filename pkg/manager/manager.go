@@ -80,7 +80,5 @@ func getValues(cluster *v1.ManagedCluster, addon *v1alpha1.ManagedClusterAddOn) 
 		AddonName:        addonName,
 		AgentNamespace:   agentNamespace,
 	}
-	klog.Info("tomer tomer debug 0")
-	klog.Info(values)
 	return addonfactory.StructToValues(values), nil
 }

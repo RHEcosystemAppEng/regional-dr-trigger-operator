@@ -9,9 +9,10 @@ import (
 
 func GetCommand() *cobra.Command {
 	agtOpts := &agent.Options{}
+	agt := agent.Agent{Options: agtOpts}
 
 	agentCmd := factory.
-		NewControllerCommandConfig("multicluster-resiliency-addon-agent", version.Get(), agent.Run(agtOpts)).
+		NewControllerCommandConfig("multicluster-resiliency-addon-agent", version.Get(), agt.Run).
 		NewCommand()
 	agentCmd.Use = "agent"
 	agentCmd.Short = "Multicluster Resiliency Addon Agent"

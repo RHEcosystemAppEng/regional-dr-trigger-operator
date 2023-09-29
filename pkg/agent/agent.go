@@ -12,6 +12,10 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/lease"
 )
 
+type Agent struct {
+	Options *Options
+}
+
 type Options struct {
 	HubKubeConfigFile string
 	SpokeName         string
@@ -19,37 +23,31 @@ type Options struct {
 	AgentNamespace    string
 }
 
-func Run(options *Options) func(ctx context.Context, kubeConfig *rest.Config) error {
-	return func(ctx context.Context, kubeConfig *rest.Config) error {
-		klog.Info("running agent")
+func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
+	klog.Info("running agent")
 
-		flag.Parse()
+	flag.Parse()
 
-		klog.Info("tomer tomer debug 1")
-		klog.Info(options)
-
-		spokeClient, err := kubernetes.NewForConfig(kubeConfig)
-		if err != nil {
-			return err
-		}
-
-		hubConfig, err := clientcmd.BuildConfigFromFlags("", options.HubKubeConfigFile)
-		if err != nil {
-			return err
-		}
-
-		leaseUpdater := lease.
-			NewLeaseUpdater(spokeClient, options.AddonName, options.AgentNamespace).
-			WithHubLeaseConfig(hubConfig, options.SpokeName)
-
-		go func() {
-			leaseUpdater.Start(ctx)
-		}()
-
-		klog.Info("tomer debug1")
-		<-ctx.Done()
-
-		klog.Info("agent done")
-		return nil
+	spokeClient, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		return err
 	}
+
+	hubConfig, err := clientcmd.BuildConfigFromFlags("", a.Options.HubKubeConfigFile)
+	if err != nil {
+		return err
+	}
+
+	leaseUpdater := lease.
+		NewLeaseUpdater(spokeClient, a.Options.AddonName, a.Options.AgentNamespace).
+		WithHubLeaseConfig(hubConfig, a.Options.SpokeName)
+
+	go func() {
+		leaseUpdater.Start(ctx)
+	}()
+
+	<-ctx.Done()
+
+	klog.Info("agent done")
+	return nil
 }
