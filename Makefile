@@ -79,12 +79,14 @@ addon/install: $(BIN_KUSTOMIZE) verify/tools/oc ## Install the addon agent for a
 test: ## Run all unit tests
 	go test -v ./...
 
+.PHONY: test/cov
 test/cov: $(BIN_GO_TEST_COVERAGE) ## Run all unit tests and print coverage report, use the COVERAGE_THRESHOLD var for setting threshold
 	go test -failfast -coverprofile=cov.out -v ./...
 	go tool cover -func=cov.out
 	go tool cover -html=cov.out -o cov.html
 	$(BIN_GO_TEST_COVERAGE) -p cov.out -k 0 -t $(COVERAGE_THRESHOLD)
 
+.PHONY: test/mut
 test/mut: $(BIN_GREMLINS) ## Run mutation tests
 	$(BIN_GREMLINS) unleash
 
@@ -93,10 +95,12 @@ test/mut: $(BIN_GREMLINS) ## Run mutation tests
 ###########################
 lint/all: lint lint/ci lint/containerfile ## Lint the entire project (code, ci, containerfile)
 
+.PHONY: lint
 lint: $(BIN_GOLINTCI) ## Lint the code
 	go fmt ./...
 	$(BIN_GOLINTCI) run
 
+.PHONY: lint/ci
 lint/ci: $(BIN_ACTIONLINT) ## Lint the ci
 	$(BIN_ACTIONLINT) --verbose
 
