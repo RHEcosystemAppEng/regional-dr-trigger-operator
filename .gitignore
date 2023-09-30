@@ -34,5 +34,4 @@ bin
 build
 cov.*
 *.tmp
-dev-cheat-sheet.md
 mcra-archive

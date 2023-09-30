@@ -51,7 +51,6 @@ func Run(ctx context.Context, kubeConfig *rest.Config) error {
 		NewAgentAddonFactory(addonName, FS, "agenttemplates").
 		WithGetValuesFuncs(generateTemplateValues).
 		WithAgentRegistrationOption(regOpts).
-		WithInstallStrategy(agent.InstallAllStrategy(agentNamespace)).
 		BuildTemplateAgentAddon()
 	if err != nil {
 		return err
