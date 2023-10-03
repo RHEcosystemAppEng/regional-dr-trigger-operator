@@ -5,22 +5,22 @@ package agent
 import (
 	"context"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/lease"
 )
 
-// Agent is a receiver representing the Addon Agent.
-// It encapsulates the Agent Options which will be used to configure the Agent run.
+// Agent is a receiver representing the Addon agent.
+// It encapsulates the Agent Options which will be used to configure the agent run.
 // Use NewAgent for instantiation.
 type Agent struct {
 	Options *Options
 }
 
-// Options is used for encapsulating the various options for configuring the Agent Run.
+// Options is used for encapsulating the various options for configuring the agent Run.
 type Options struct {
 	HubKubeConfigFile string
 	SpokeName         string
@@ -35,7 +35,8 @@ func NewAgent() Agent {
 // Run is used for running the Addon Agent.
 // It takes a context and the kubeconfig for the Spoke it runs on.
 func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
-	klog.Info("running addon agent")
+	logger := log.FromContext(ctx)
+	logger.Info("running addon agent")
 
 	spokeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
@@ -57,6 +58,6 @@ func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
 
 	<-ctx.Done()
 
-	klog.Info("addon agent done")
+	logger.Info("addon agent done")
 	return nil
 }

@@ -22,3 +22,6 @@ spec:
         args:
           - manager
           - --agent-replicas=1
+          - --controller-metric-address=:8080
+          - --controller-probe-address=:8081
+          - --controller-leader-election=false

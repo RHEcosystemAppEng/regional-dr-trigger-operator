@@ -30,7 +30,7 @@ func getRegistrationOptionFunc(ctx context.Context, kubeConfig *rest.Config) *ag
 	agentName := rand.String(5)
 	return &agent.RegistrationOption{
 		CSRConfigurations: agent.KubeClientSignerConfigurations(AddonName, agentName),
-		CSRApproveCheck:   utils.DefaultCSRApprover(agentName),
+		CSRApproveCheck:   utils.DefaultCSRApprover(agentName), // this is the default auto-approving, consider replacing
 		PermissionConfig:  getPermissionConfig(ctx, kubeConfig),
 	}
 }
@@ -53,7 +53,6 @@ func getPermissionConfig(ctx context.Context, kubeConfig *rest.Config) agent.Per
 				Namespace: cluster.Name,
 			},
 			Rules: []rbacv1.PolicyRule{
-				{Verbs: []string{"get", "list", "watch"}, Resources: []string{"configmaps"}, APIGroups: []string{""}},
 				{Verbs: []string{"get", "list", "watch"}, Resources: []string{"managedclusteraddons"}, APIGroups: []string{"addon.open-cluster-management.io"}},
 			},
 		}

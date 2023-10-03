@@ -3,15 +3,12 @@
 package main
 
 import (
-	"os"
-
+	"fmt"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/cmd"
-	"k8s.io/klog/v2"
 )
 
 func main() {
 	if err := cmd.Execute(); err != nil {
-		klog.Fatalf("failed to run mcra: %v", err)
-		os.Exit(1)
+		panic(fmt.Sprintf("failed to run mcra: %v", err))
 	}
 }

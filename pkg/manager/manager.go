@@ -4,21 +4,25 @@ package manager
 
 import (
 	"context"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/controller"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// Manager is a receiver representing the Addon Manager.
-// It encapsulates the Agent Options which will be used to configure the Agent run.
+// Manager is a receiver representing the Addon manager.
+// It encapsulates the Manager Options which will be used to configure the manager run.
 // Use NewManager for instantiation.
 type Manager struct {
 	Options *Options
 }
 
-// Options is used for encapsulating the various options for configuring the Manager Run.
+// Options is used for encapsulating the various options for configuring the manager Run.
 type Options struct {
-	AgentReplicas int
+	ControllerMetricAddr     string
+	ControllerProbeAddr      string
+	ControllerLeaderElection bool
+	AgentReplicas            int
 }
 
 // NewManager is used as a factory for creating a Manager instance.
@@ -29,7 +33,8 @@ func NewManager() Manager {
 // Run is used for running the Addon Manager.
 // It takes a context and the kubeconfig for the Hub it runs on.
 func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
-	klog.Info("running addon manager")
+	logger := log.FromContext(ctx)
+	logger.Info("running addon manager")
 
 	addonMgr, err := addonmanager.New(kubeConfig)
 	if err != nil {
@@ -47,12 +52,21 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 
 	go func() {
 		if err = addonMgr.Start(ctx); err != nil {
-			klog.Fatalf("failed to start the addon manager: %v", err)
+			logger.Error(err, "failed to start the addon manager")
 		}
 	}()
 
-	<-ctx.Done()
+	ctrl := controller.NewControllerWithOptions(&controller.Options{
+		MetricAddr:     m.Options.ControllerMetricAddr,
+		ProbeAddr:      m.Options.ControllerProbeAddr,
+		LeaderElection: m.Options.ControllerLeaderElection,
+	})
 
-	klog.Info("addon manager done")
+	// blocking
+	if err = ctrl.Run(ctx, kubeConfig); err != nil {
+		return err
+	}
+
+	logger.Info("addon manager done")
 	return nil
 }
