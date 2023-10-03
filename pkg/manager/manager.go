@@ -4,20 +4,14 @@ package manager
 
 import (
 	"context"
-	"embed"
 	"k8s.io/client-go/rest"
-	klogv2 "k8s.io/klog/v2"
-	"open-cluster-management.io/addon-framework/pkg/addonfactory"
+	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 )
 
-//go:embed agenttemplates
-var FS embed.FS // Resource templates used for deploying the Addon Agent to Spokes.
-
-const AddonName = "multicluster-resiliency-addon"
-
 // Manager is a receiver representing the Addon Manager.
 // It encapsulates the Agent Options which will be used to configure the Agent run.
+// Use NewManager for instantiation.
 type Manager struct {
 	Options *Options
 }
@@ -35,18 +29,14 @@ func NewManager() Manager {
 // Run is used for running the Addon Manager.
 // It takes a context and the kubeconfig for the Hub it runs on.
 func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
-	klogv2.Info("running manager")
+	klog.Info("running addon manager")
 
 	addonMgr, err := addonmanager.New(kubeConfig)
 	if err != nil {
 		return err
 	}
 
-	agentAddon, err := addonfactory.
-		NewAgentAddonFactory(AddonName, FS, "agenttemplates").
-		WithGetValuesFuncs(getTemplateValuesFunc(m.Options)).
-		WithAgentRegistrationOption(getRegistrationOptionFunc(ctx, kubeConfig)).
-		BuildTemplateAgentAddon()
+	agentAddon, err := createAgent(ctx, kubeConfig, m.Options)
 	if err != nil {
 		return err
 	}
@@ -57,11 +47,12 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 
 	go func() {
 		if err = addonMgr.Start(ctx); err != nil {
-			klogv2.Fatalf("failed to add start addon: %v", err)
+			klog.Fatalf("failed to start the addon manager: %v", err)
 		}
 	}()
 
 	<-ctx.Done()
 
+	klog.Info("addon manager done")
 	return nil
 }

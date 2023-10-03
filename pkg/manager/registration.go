@@ -18,6 +18,8 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
+const AddonName = "multicluster-resiliency-addon"
+
 // getRegistrationOptionFunc is used to create a function for creating a registry option for configuring the addon automated
 // registration process. In runtime, when the addon is enabled on a Spoke, this will create a role and a binding on the
 // Spoke's cluster-namespace on the Hub. This will allow the Spoke's Agent to access resource in its own namespace on

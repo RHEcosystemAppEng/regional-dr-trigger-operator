@@ -9,6 +9,7 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
+// Values is used to encapsulate template values for the Agent templates.
 type Values struct {
 	KubeConfigSecret string
 	SpokeName        string

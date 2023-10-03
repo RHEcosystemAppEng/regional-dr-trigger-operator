@@ -4,12 +4,9 @@ package cmd
 
 import (
 	goflag "flag"
-	"time"
-
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"golang.org/x/exp/rand"
 	cliflag "k8s.io/component-base/cli/flag"
 )
 
@@ -24,8 +21,6 @@ var mcraCmd = &cobra.Command{
 // Execute will execute the root MCRA Command.
 // Note that sub-commands are added via the various init functions in this package.
 func Execute() error {
-	rand.Seed(uint64(time.Now().UTC().UnixNano()))
-
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
 
