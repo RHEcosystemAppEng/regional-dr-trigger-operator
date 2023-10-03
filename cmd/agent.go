@@ -9,8 +9,7 @@ import (
 )
 
 func init() {
-	agtOpts := &agent.Options{}
-	agt := agent.Agent{Options: agtOpts}
+	agt := agent.NewAgent()
 
 	agtCmd := factory.
 		NewControllerCommandConfig("multicluster-resiliency-addon-agent", version.Get(), agt.Run).
@@ -18,9 +17,9 @@ func init() {
 	agtCmd.Use = "agent"
 	agtCmd.Short = "Multicluster Resiliency Addon Agent"
 
-	agtCmd.Flags().StringVar(&agtOpts.HubKubeConfigFile, "hub-kubeconfig", "blabla", "TODO")
-	agtCmd.Flags().StringVar(&agtOpts.SpokeName, "spoke-name", "blabla", "TODO")
-	agtCmd.Flags().StringVar(&agtOpts.AgentNamespace, "agent-namespace", "blabla", "TODO")
+	agtCmd.Flags().StringVar(&agt.Options.HubKubeConfigFile, "hub-kubeconfig", "blabla", "TODO")
+	agtCmd.Flags().StringVar(&agt.Options.SpokeName, "spoke-name", "blabla", "TODO")
+	agtCmd.Flags().StringVar(&agt.Options.AgentNamespace, "agent-namespace", "blabla", "TODO")
 
 	mcraCmd.AddCommand(agtCmd)
 }

@@ -4,7 +4,6 @@ package agent
 
 import (
 	"context"
-	"flag"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/manager"
 
 	"k8s.io/client-go/kubernetes"
@@ -24,11 +23,14 @@ type Options struct {
 	AgentNamespace    string
 }
 
+// NewAgent is used as a factory for creating an Agent instance
+func NewAgent() Agent {
+	return Agent{Options: &Options{}}
+}
+
 // Run is used for running the Addon Agent
 func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	klogv2.Info("running agent")
-
-	flag.Parse()
 
 	spokeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {

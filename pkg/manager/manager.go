@@ -5,8 +5,6 @@ package manager
 import (
 	"context"
 	"embed"
-	"flag"
-
 	"k8s.io/client-go/rest"
 	klogv2 "k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
@@ -26,11 +24,14 @@ type Options struct {
 	AgentReplicas int
 }
 
+// NewManager is used as a factory for creating a Manager instance
+func NewManager() Manager {
+	return Manager{Options: &Options{}}
+}
+
 // Run is used for creating the Addon and running the Addon Manager
 func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	klogv2.Info("running manager")
-
-	flag.Parse()
 
 	addonMgr, err := addonmanager.New(kubeConfig)
 	if err != nil {

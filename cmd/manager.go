@@ -9,8 +9,7 @@ import (
 )
 
 func init() {
-	mgrOpts := &manager.Options{}
-	mgr := manager.Manager{Options: mgrOpts}
+	mgr := manager.NewManager()
 
 	mgrCmd := factory.
 		NewControllerCommandConfig("multicluster-resiliency-addon-manager", version.Get(), mgr.Run).
@@ -18,7 +17,7 @@ func init() {
 	mgrCmd.Use = "manager"
 	mgrCmd.Short = "Multicluster Resiliency Addon Manager"
 
-	mgrCmd.Flags().IntVar(&mgrOpts.AgentReplicas, "agent-replicas", 1, "TODO")
+	mgrCmd.Flags().IntVar(&mgr.Options.AgentReplicas, "agent-replicas", 1, "TODO")
 
 	mcraCmd.AddCommand(mgrCmd)
 }
