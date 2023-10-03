@@ -5,52 +5,42 @@ package manager
 import (
 	"context"
 	"embed"
-	"fmt"
-	"k8s.io/client-go/rest"
-	"open-cluster-management.io/api/addon/v1alpha1"
-	v1 "open-cluster-management.io/api/cluster/v1"
+	"flag"
 
-	"k8s.io/apimachinery/pkg/util/rand"
-	"k8s.io/klog/v2"
+	"k8s.io/client-go/rest"
+	klogv2 "k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
-	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/utils"
 )
 
 //go:embed agenttemplates
 var FS embed.FS
 
-const (
-	addonName      = "multicluster-resiliency-addon"
-	agentNamespace = "open-cluster-management-agent-addon"
-)
+const AddonName = "multicluster-resiliency-addon"
 
-type Values struct {
-	KubeConfigSecret string
-	SpokeName        string
-	AddonName        string
-	AgentNamespace   string
+type Manager struct {
+	Options *Options
 }
 
-func Run(ctx context.Context, kubeConfig *rest.Config) error {
-	klog.Info("running manager")
+type Options struct {
+	AgentReplicas int
+}
+
+// Run is used for creating the Addon and running the Addon Manager
+func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
+	klogv2.Info("running manager")
+
+	flag.Parse()
 
 	addonMgr, err := addonmanager.New(kubeConfig)
 	if err != nil {
 		return err
 	}
 
-	agentName := rand.String(5)
-	regOpts := &agent.RegistrationOption{
-		CSRConfigurations: agent.KubeClientSignerConfigurations(addonName, agentName),
-		CSRApproveCheck:   utils.DefaultCSRApprover(agentName),
-	}
-
 	agentAddon, err := addonfactory.
-		NewAgentAddonFactory(addonName, FS, "agenttemplates").
-		WithGetValuesFuncs(generateTemplateValues).
-		WithAgentRegistrationOption(regOpts).
+		NewAgentAddonFactory(AddonName, FS, "agenttemplates").
+		WithGetValuesFuncs(getTemplateValuesFunc(m.Options)).
+		WithAgentRegistrationOption(getRegistrationOptionFunc(ctx, kubeConfig)).
 		BuildTemplateAgentAddon()
 	if err != nil {
 		return err
@@ -61,22 +51,12 @@ func Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	go func() {
-		if err := addonMgr.Start(ctx); err != nil {
-			klog.Fatalf("failed to add start addon: %v", err)
+		if err = addonMgr.Start(ctx); err != nil {
+			klogv2.Fatalf("failed to add start addon: %v", err)
 		}
 	}()
 
 	<-ctx.Done()
 
 	return nil
-}
-
-func generateTemplateValues(cluster *v1.ManagedCluster, addon *v1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
-	values := Values{
-		KubeConfigSecret: fmt.Sprintf("%s-hub-kubeconfig", addon.Name),
-		SpokeName:        cluster.Name,
-		AddonName:        addonName,
-		AgentNamespace:   agentNamespace,
-	}
-	return addonfactory.StructToValues(values), nil
 }

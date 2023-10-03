@@ -5,10 +5,12 @@ package agent
 import (
 	"context"
 	"flag"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/manager"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
+	klogv2 "k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/lease"
 )
 
@@ -19,12 +21,12 @@ type Agent struct {
 type Options struct {
 	HubKubeConfigFile string
 	SpokeName         string
-	AddonName         string
 	AgentNamespace    string
 }
 
+// Run is used for running the Addon Agent
 func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
-	klog.Info("running agent")
+	klogv2.Info("running agent")
 
 	flag.Parse()
 
@@ -39,7 +41,7 @@ func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	leaseUpdater := lease.
-		NewLeaseUpdater(spokeClient, a.Options.AddonName, a.Options.AgentNamespace).
+		NewLeaseUpdater(spokeClient, manager.AddonName, a.Options.AgentNamespace).
 		WithHubLeaseConfig(hubConfig, a.Options.SpokeName)
 
 	go func() {

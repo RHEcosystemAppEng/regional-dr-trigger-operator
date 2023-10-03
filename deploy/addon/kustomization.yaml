@@ -3,14 +3,19 @@ kind: Kustomization
 
 namespace: open-cluster-management
 
+namePrefix: multicluster-resiliency-addon-
+
 resources:
-  - resources/clusterrole.yaml
-  - resources/clusterrolebinding.yaml
-  - resources/serviceaccount.yaml
   - resources/clustermanagementaddon.yaml
+  - resources/clusterrole.yaml
+  - resources/serviceaccount.yaml
+  - resources/clusterrolebinding.yaml
   - resources/deployment.yaml
 
 images:
-  - name: quay.io/ecosystem-appeng/multicluster-resiliency-addon
+  - name: manager-image
     newName: quay.io/ecosystem-appeng/multicluster-resiliency-addon
     newTag: replace-me
+
+configurations:
+  - kustomizeconfig.yaml

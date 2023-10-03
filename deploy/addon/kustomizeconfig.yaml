@@ -1,0 +1,17 @@
+namePrefix:
+  - kind: ServiceAccount
+    path: metadata/name
+  - kind: ClusterRole
+    path: metadata/name
+  - kind: ClusterRoleBinding
+    path: metadata/name
+  - kind: Deployment
+    path: metadata/name
+
+nameReference:
+  - kind: Deployment
+    fieldSpecs:
+      - path: metadata/labels/app
+      - path: spec/selector/matchLabels/app
+      - path: spec/template/metadata/labels/app
+      - path: spec/template/spec/containers[]/name

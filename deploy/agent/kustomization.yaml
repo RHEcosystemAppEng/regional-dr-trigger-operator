@@ -4,4 +4,4 @@ kind: Kustomization
 resources:
 - resources/managedclusteraddon.yaml
 
-namespace: cluster1
+namespace: replace-me

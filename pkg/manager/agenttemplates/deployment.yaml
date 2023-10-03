@@ -4,7 +4,7 @@ metadata:
   name: multicluster-resiliency-addon-agent
   namespace: {{ .AgentNamespace }}
 spec:
-  replicas: 1
+  replicas: {{ .AgentReplicas }}
   selector:
     matchLabels:
       addon: multicluster-resiliency-addon-agent
@@ -23,7 +23,6 @@ spec:
             - --spoke-name={{ .SpokeName }}
             - --hub-kubeconfig=/etc/hub/kubeconfig
             - --agent-namespace={{ .AgentNamespace }}
-            - --addon-name={{ .AddonName }}
           volumeMounts:
             - name: hub-kubeconfig
               mountPath: /etc/hub/
