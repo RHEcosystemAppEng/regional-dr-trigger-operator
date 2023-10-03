@@ -8,6 +8,7 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/cmd/factory"
 )
 
+// init is used for creating the Manager Commend, incorporate its flags, and binding it to the root MCRA Command.
 func init() {
 	mgr := manager.NewManager()
 

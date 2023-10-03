@@ -13,6 +13,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 )
 
+// Root MCRA Command.
 var mcraCmd = &cobra.Command{
 	Use:          "mcra",
 	Short:        "Multicluster Resiliency Addon",
@@ -20,6 +21,8 @@ var mcraCmd = &cobra.Command{
 	Version:      version.Get().String(),
 }
 
+// Execute will execute the root MCRA Command.
+// Note that sub-commands are added via the various init functions in this package.
 func Execute() error {
 	rand.Seed(uint64(time.Now().UTC().UnixNano()))
 

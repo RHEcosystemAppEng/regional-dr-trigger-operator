@@ -13,22 +13,26 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/lease"
 )
 
+// Agent is a receiver representing the Addon Agent.
+// It encapsulates the Agent Options which will be used to configure the Agent run.
 type Agent struct {
 	Options *Options
 }
 
+// Options is used for encapsulating the various options for configuring the Agent Run.
 type Options struct {
 	HubKubeConfigFile string
 	SpokeName         string
 	AgentNamespace    string
 }
 
-// NewAgent is used as a factory for creating an Agent instance
+// NewAgent is used as a factory for creating an Agent instance.
 func NewAgent() Agent {
 	return Agent{Options: &Options{}}
 }
 
-// Run is used for running the Addon Agent
+// Run is used for running the Addon Agent.
+// It takes a context and the kubeconfig for the Spoke it runs on.
 func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	klogv2.Info("running agent")
 

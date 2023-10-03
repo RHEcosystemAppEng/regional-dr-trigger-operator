@@ -16,7 +16,7 @@ type Values struct {
 	AgentReplicas    int
 }
 
-// getTemplateValuesFunc is used to build a function for generating values to be used in the agent templates
+// getTemplateValuesFunc is used to build a function for generating values to be used in the Addon Agent templates.
 func getTemplateValuesFunc(options *Options) func(cluster *clusterv1.ManagedCluster, addon *addonv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
 	return func(cluster *clusterv1.ManagedCluster, addon *addonv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
 		values := Values{

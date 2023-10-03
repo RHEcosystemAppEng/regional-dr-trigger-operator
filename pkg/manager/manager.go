@@ -12,24 +12,28 @@ import (
 )
 
 //go:embed agenttemplates
-var FS embed.FS
+var FS embed.FS // Resource templates used for deploying the Addon Agent to Spokes.
 
 const AddonName = "multicluster-resiliency-addon"
 
+// Manager is a receiver representing the Addon Manager.
+// It encapsulates the Agent Options which will be used to configure the Agent run.
 type Manager struct {
 	Options *Options
 }
 
+// Options is used for encapsulating the various options for configuring the Manager Run.
 type Options struct {
 	AgentReplicas int
 }
 
-// NewManager is used as a factory for creating a Manager instance
+// NewManager is used as a factory for creating a Manager instance.
 func NewManager() Manager {
 	return Manager{Options: &Options{}}
 }
 
-// Run is used for creating the Addon and running the Addon Manager
+// Run is used for running the Addon Manager.
+// It takes a context and the kubeconfig for the Hub it runs on.
 func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	klogv2.Info("running manager")
 
