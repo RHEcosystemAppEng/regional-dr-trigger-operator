@@ -9,10 +9,10 @@ default: help
 ###### Image related variables ######
 #####################################
 IMAGE_BUILDER ?= podman##@ Set a custom image builder if 'podman' is not available
-IMAGE_REGISTRY ?= quay.io##@ Set the image registry for build and deploy, defaults to 'quay.io'
-IMAGE_NAMESPACE ?= ecosystem-appeng##@ Set the image namespace for build and deploy, defaults to 'ecosystem-appeng'
-IMAGE_NAME ?= multicluster-resiliency-addon##@ Set the image name for build and deploy, defaults to 'multicluster-resiliency-addon'
-IMAGE_TAG ?= devel##@ Set the image tag for build and deploy, defaults to 'devel'
+IMAGE_REGISTRY ?= quay.io##@ Set the image registry for build and config, defaults to 'quay.io'
+IMAGE_NAMESPACE ?= ecosystem-appeng##@ Set the image namespace for build and config, defaults to 'ecosystem-appeng'
+IMAGE_NAME ?= multicluster-resiliency-addon##@ Set the image name for build and config, defaults to 'multicluster-resiliency-addon'
+IMAGE_TAG ?= devel##@ Set the image tag for build and config, defaults to 'devel'
 FULL_IMAGE_NAME = $(strip $(IMAGE_REGISTRY)/$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG))
 
 ##########################################################
@@ -61,16 +61,16 @@ build/image/push: build/image ## Build and push the image, customized with IMAGE
 ###### Deploy and Apply resources ######
 ########################################
 addon/deploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Deploy the addon manager on the Hub cluster
-	cp deploy/addon/kustomization.yaml deploy/addon/kustomization.yaml.tmp
-	cd deploy/addon && $(BIN_KUSTOMIZE) edit set image $(FULL_IMAGE_NAME)
-	$(BIN_KUSTOMIZE) build deploy/addon | $(BIN_OC) apply -f -
-	mv deploy/addon/kustomization.yaml.tmp deploy/addon/kustomization.yaml
+	cp config/addon/kustomization.yaml config/addon/kustomization.yaml.tmp
+	cd config/addon && $(BIN_KUSTOMIZE) edit set image $(FULL_IMAGE_NAME)
+	$(BIN_KUSTOMIZE) build config/addon | $(BIN_OC) apply -f -
+	mv config/addon/kustomization.yaml.tmp config/addon/kustomization.yaml
 
 addon/install: $(BIN_KUSTOMIZE) verify/tools/oc ## Install the addon agent for a spoke named in AGENT_CLUSTER_NAME on the Hub cluster
-	cp deploy/agent/kustomization.yaml deploy/agent/kustomization.yaml.tmp
-	cd deploy/agent && $(BIN_KUSTOMIZE) edit set namespace $(AGENT_CLUSTER_NAME)
-	$(BIN_KUSTOMIZE) build deploy/agent | $(BIN_OC) apply -f -
-	mv deploy/agent/kustomization.yaml.tmp deploy/agent/kustomization.yaml
+	cp config/agent/kustomization.yaml config/agent/kustomization.yaml.tmp
+	cd config/agent && $(BIN_KUSTOMIZE) edit set namespace $(AGENT_CLUSTER_NAME)
+	$(BIN_KUSTOMIZE) build config/agent | $(BIN_OC) apply -f -
+	mv config/agent/kustomization.yaml.tmp config/agent/kustomization.yaml
 
 ###########################
 ###### Test codebase ######
