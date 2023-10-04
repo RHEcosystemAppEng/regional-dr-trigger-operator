@@ -35,7 +35,6 @@ func NewManager() Manager {
 // It takes a context and the kubeconfig for the Hub it runs on.
 func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	logger := log.FromContext(ctx)
-	logger.Info("running addon manager")
 
 	addonMgr, err := addonmanager.New(kubeConfig)
 	if err != nil {
@@ -68,6 +67,5 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
-	logger.Info("addon manager done")
 	return nil
 }

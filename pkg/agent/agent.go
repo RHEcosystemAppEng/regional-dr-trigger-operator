@@ -5,8 +5,6 @@ package agent
 import (
 	"context"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -35,9 +33,6 @@ func NewAgent() Agent {
 // Run is used for running the Addon Agent.
 // It takes a context and the kubeconfig for the Spoke it runs on.
 func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
-	logger := log.FromContext(ctx)
-	logger.Info("running addon agent")
-
 	spokeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		return err
@@ -56,8 +51,8 @@ func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		leaseUpdater.Start(ctx)
 	}()
 
+	// blocking
 	<-ctx.Done()
 
-	logger.Info("addon agent done")
 	return nil
 }

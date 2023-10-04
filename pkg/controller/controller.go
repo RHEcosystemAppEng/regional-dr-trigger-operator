@@ -37,7 +37,6 @@ func NewControllerWithOptions(options *Options) Controller {
 // This function blocks while running the controller's manager.
 func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	logger := log.FromContext(ctx)
-	logger.Info("running addon controller")
 
 	scheme := runtime.NewScheme()
 	if err := addonv1alpha1.Install(scheme); err != nil {
@@ -75,6 +74,5 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
-	logger.Info("addon controller done")
 	return nil
 }
