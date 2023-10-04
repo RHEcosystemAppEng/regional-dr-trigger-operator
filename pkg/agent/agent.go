@@ -33,7 +33,7 @@ func NewAgent() Agent {
 // Run is used for running the Addon Agent.
 // It takes a context and the kubeconfig for the Spoke it runs on.
 func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
-	spokeClient, err := kubernetes.NewForConfig(kubeConfig)
+	spokeClientSet, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	leaseUpdater := lease.
-		NewLeaseUpdater(spokeClient, manager.AddonName, a.Options.AgentNamespace).
+		NewLeaseUpdater(spokeClientSet, manager.AddonName, a.Options.AgentNamespace).
 		WithHubLeaseConfig(hubConfig, a.Options.SpokeName)
 
 	go func() {

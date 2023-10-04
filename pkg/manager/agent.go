@@ -13,8 +13,8 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
-//go:embed agenttemplates
-var FS embed.FS // Resource templates used for deploying the Addon Agent to Spokes.
+//go:embed rbac templates
+var fsys embed.FS // Resource templates used for deploying the Addon Agent to Spokes.
 
 // Values is used to encapsulate template values for the Agent templates.
 type Values struct {
@@ -28,7 +28,7 @@ type Values struct {
 // createAgent is used for creating the Addon Agent configuration for the Addon Manager.
 func createAgent(ctx context.Context, kubeConfig *rest.Config, options *Options) (agent.AgentAddon, error) {
 	return addonfactory.
-		NewAgentAddonFactory(AddonName, FS, "agenttemplates").
+		NewAgentAddonFactory(AddonName, fsys, "templates").
 		WithGetValuesFuncs(getTemplateValuesFunc(options)).
 		WithAgentRegistrationOption(getRegistrationOptionFunc(ctx, kubeConfig)).
 		BuildTemplateAgentAddon()
