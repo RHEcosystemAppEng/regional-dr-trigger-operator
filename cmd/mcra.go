@@ -2,6 +2,8 @@
 
 package cmd
 
+// This file hosts the root MCRA command, all executions starts here (mcra = MultiCluster Resiliency Addon).
+
 import (
 	goflag "flag"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version"

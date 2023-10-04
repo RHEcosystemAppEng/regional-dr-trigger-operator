@@ -2,13 +2,23 @@
 
 package manager
 
+// This file hosts functions and types for running our Addon Manager on the Hub cluster.
+
 import (
 	"context"
+	"embed"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/controller"
 	"k8s.io/client-go/rest"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+const AddonName = "multicluster-resiliency-addon"
+
+// Resource templates for deploying the Addon Agent to Spokes and RBAC resource for the cluster-namespace.
+//
+//go:embed templates/agent templates/rbac
+var fsys embed.FS
 
 // Manager is a receiver representing the Addon manager.
 // It encapsulates the Manager Options which will be used to configure the manager run.

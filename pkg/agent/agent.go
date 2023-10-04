@@ -2,6 +2,8 @@
 
 package agent
 
+// This file hosts functions and types for running our Addon Agent on the Spoke cluster.
+
 import (
 	"context"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/manager"

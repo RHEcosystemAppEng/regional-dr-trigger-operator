@@ -2,6 +2,8 @@
 
 package controller
 
+// This file hosts our reconciler implementation for the controller run.
+
 import (
 	"context"
 	"k8s.io/apimachinery/pkg/runtime"

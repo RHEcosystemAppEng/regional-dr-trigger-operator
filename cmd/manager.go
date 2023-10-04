@@ -2,6 +2,8 @@
 
 package cmd
 
+// This file hosts the 'manager' command used for running our Addon Manager on a Hub cluster.
+
 import (
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/manager"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version"

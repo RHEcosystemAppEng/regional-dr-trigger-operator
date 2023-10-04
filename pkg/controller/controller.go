@@ -2,6 +2,8 @@
 
 package controller
 
+// This file hosts functions and types for instantiating our controller as part of our Addon Manager on the Hub cluster.
+
 import (
 	"context"
 	"k8s.io/apimachinery/pkg/runtime"
