@@ -1,0 +1,11 @@
+- source:
+    fieldPath: spec.template.spec.containers.0.image
+    kind: Deployment
+  targets:
+    - fieldPaths:
+        - spec.template.spec.containers.0.args.1
+      select:
+        kind: Deployment
+      options:
+        delimiter: =
+        index: 1

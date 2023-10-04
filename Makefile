@@ -62,7 +62,7 @@ build/image/push: build/image ## Build and push the image, customized with IMAGE
 ########################################
 addon/deploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Deploy the addon manager on the Hub cluster
 	cp config/addon/kustomization.yaml config/addon/kustomization.yaml.tmp
-	cd config/addon && $(BIN_KUSTOMIZE) edit set image $(FULL_IMAGE_NAME)
+	cd config/addon && $(BIN_KUSTOMIZE) edit set image mcra-image=$(FULL_IMAGE_NAME)
 	$(BIN_KUSTOMIZE) build config/addon | $(BIN_OC) apply -f -
 	mv config/addon/kustomization.yaml.tmp config/addon/kustomization.yaml
 

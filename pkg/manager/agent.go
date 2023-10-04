@@ -22,6 +22,7 @@ type Values struct {
 	SpokeName        string
 	AgentNamespace   string
 	AgentReplicas    int
+	AgentImage       string
 }
 
 // createAgent is used for creating the Addon Agent configuration for the Addon Manager.
@@ -41,6 +42,7 @@ func getTemplateValuesFunc(options *Options) func(cluster *clusterv1.ManagedClus
 			SpokeName:        cluster.Name,
 			AgentNamespace:   addon.Spec.InstallNamespace,
 			AgentReplicas:    options.AgentReplicas,
+			AgentImage:       options.AgentImage,
 		}
 		return addonfactory.StructToValues(values), nil
 	}

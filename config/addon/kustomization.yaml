@@ -3,6 +3,7 @@ kind: Kustomization
 
 namespace: open-cluster-management
 
+# note: namePrefix is enforced on selective resources, see kustomizeconfig
 namePrefix: multicluster-resiliency-addon-
 
 resources:
@@ -14,8 +15,11 @@ resources:
 
 images:
   - name: manager-image
-    newName: quay.io/ecosystem-appeng/multicluster-resiliency-addon
+    newName: mcra-image
     newTag: replace-me
 
 configurations:
   - kustomizeconfig.yaml
+
+replacements:
+  - path: kustomizereplace.yaml

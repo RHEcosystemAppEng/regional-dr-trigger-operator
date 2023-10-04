@@ -22,6 +22,7 @@ func init() {
 	mgrCmd.Flags().StringVar(&mgr.Options.ControllerProbeAddr, "controller-probe-address", ":8081", "TODO")
 	mgrCmd.Flags().BoolVar(&mgr.Options.ControllerLeaderElection, "controller-leader-election", false, "TODO")
 	mgrCmd.Flags().IntVar(&mgr.Options.AgentReplicas, "agent-replicas", 1, "TODO")
+	mgrCmd.Flags().StringVar(&mgr.Options.AgentImage, "agent-image", "", "TODO")
 
 	mcraCmd.AddCommand(mgrCmd)
 }

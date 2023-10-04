@@ -23,6 +23,7 @@ type Options struct {
 	ControllerProbeAddr      string
 	ControllerLeaderElection bool
 	AgentReplicas            int
+	AgentImage               string
 }
 
 // NewManager is used as a factory for creating a Manager instance.
