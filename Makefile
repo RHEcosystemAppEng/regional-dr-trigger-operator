@@ -29,6 +29,7 @@ $(LOCALBUILD):
 #####################################
 ###### Tool binaries variables ######
 #####################################
+BIN_CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen##@ Set custom 'controller-gen', if not supplied will install latest in ./bin
 BIN_KUSTOMIZE ?= $(LOCALBIN)/kustomize##@ Set custom 'kustomize', if not supplied will install latest in ./bin
 BIN_GREMLINS ?= $(LOCALBIN)/gremlins##@ Set custom 'gremlins', if not supplied will install latest in ./bin
 BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install latest in ./bin
@@ -56,6 +57,13 @@ build/image: ## Build the image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE
 
 build/image/push: build/image ## Build and push the image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG
 	$(IMAGE_BUILDER) push $(FULL_IMAGE_NAME)
+
+###########################################
+###### Code and Manifests generation ######
+###########################################
+.PHONY: generate/manifests
+generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the various manifest files
+	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controller/..."
 
 ########################################
 ###### Deploy and Apply resources ######
@@ -158,6 +166,9 @@ help: verify/tools/awk ## Show this help message
 ####################################
 $(BIN_KUSTOMIZE):
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kustomize/kustomize/v5@latest
+
+$(BIN_CONTROLLER_GEN):
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 
 $(BIN_GREMLINS):
 	GOBIN=$(LOCALBIN) go install github.com/go-gremlins/gremlins/cmd/gremlins@latest

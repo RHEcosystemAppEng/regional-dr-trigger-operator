@@ -1,0 +1,7 @@
+namePrefix:
+  - kind: ServiceAccount
+    path: metadata/name
+  - kind: ClusterRole
+    path: metadata/name
+  - kind: ClusterRoleBinding
+    path: metadata/name

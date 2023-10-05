@@ -7,19 +7,20 @@ namespace: open-cluster-management
 namePrefix: multicluster-resiliency-addon-
 
 resources:
-  - resources/clustermanagementaddon.yaml
-  - resources/clusterrole.yaml
-  - resources/serviceaccount.yaml
-  - resources/clusterrolebinding.yaml
-  - resources/deployment.yaml
+- ../rbac
+- deployment.yaml
+- clustermanagementaddon.yaml
 
 images:
-  - name: manager-image
-    newName: mcra-image
-    newTag: replace-me
+- name: manager-image
+  newName: mcra-image
+  newTag: replace-me
+- name: mcra-image
+  newName: quay.io/ecosystem-appeng/multicluster-resiliency-addon
+  newTag: devel
 
 configurations:
-  - kustomizeconfig.yaml
+- kustomizeconfig.yaml
 
 replacements:
-  - path: kustomizereplace.yaml
+- path: kustomizereplace.yaml

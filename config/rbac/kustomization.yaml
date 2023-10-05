@@ -1,0 +1,7 @@
+resources:
+  - role.yaml
+  - serviceaccount.yaml
+  - rolebinding.yaml
+
+configurations:
+  - kustomizeconfig.yaml
