@@ -2,19 +2,16 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: manager
-  labels:
-    app: manager
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: manager
+  replicas: 0
   template:
     metadata:
-      labels:
-        app: manager
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
     spec:
       serviceAccountName: sa
+      securityContext:
+        runAsNonRoot: true
       containers:
       - name: manager
         image: manager-image
@@ -22,7 +19,4 @@ spec:
         args:
           - manager
           - --agent-image=manager-image
-          - --agent-replicas=1
-          - --controller-metric-address=:8080
-          - --controller-probe-address=:8081
-          - --controller-leader-election=false
+          - --controller-leader-election

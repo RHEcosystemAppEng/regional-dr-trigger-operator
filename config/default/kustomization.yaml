@@ -1,0 +1,30 @@
+# This kustomize file is used for kustomizing the deployment of the Addon Manager.
+# Use the json/strategic patches for fine-tuning the Addon Manager workload.
+# Start here for addon deployment.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: open-cluster-management
+
+# namePrefix is enforced on selective resources, see the various resources kustomizeconfig
+namePrefix: multicluster-resiliency-addon-
+
+resources:
+- ../rbac
+- ../addon
+
+patches:
+#  - path: strategic/addon_manager_auth_proxy.yaml
+  - path: strategic/addon_manager_probes.yaml
+  - path: strategic/addon_manager_replicas.yaml
+  - path: strategic/addon_manager_resources.yaml
+  - path: strategic/addon_manager_security.yaml
+  - target:
+      kind: Deployment
+      name: manager
+      version: v1
+    path: json/manager_deployment_args.yaml # configure manager deployment arguments
+
+commonLabels:
+  app.kubernetes.io/part-of: multicluster-resiliency-addon
+  app.kubernetes.io/managed-by: kustomize

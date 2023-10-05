@@ -1,0 +1,23 @@
+# This patch injects health probes configuration to the manager container
+# If ports are changed here, modify ../json/manager_deployment_args.yaml accordingly
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: manager
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10

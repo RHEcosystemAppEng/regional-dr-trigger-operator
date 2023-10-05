@@ -1,0 +1,17 @@
+# This patch injects resources configuration to the manager deployment
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: manager
+spec:
+  template:
+    spec:
+      containers:
+        - name: manager
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi

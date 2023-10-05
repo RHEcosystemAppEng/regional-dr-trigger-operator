@@ -1,0 +1,35 @@
+# Create the appropriate name label for service account
+- source:
+    fieldPath: metadata.name
+    kind: ServiceAccount
+  targets:
+    - fieldPaths:
+        - metadata.labels.[app.kubernetes.io/name]
+      select:
+        kind: ServiceAccount
+      options:
+        create: true
+
+# Create the appropriate name label for role
+- source:
+    fieldPath: metadata.name
+    kind: ClusterRole
+  targets:
+    - fieldPaths:
+        - metadata.labels.[app.kubernetes.io/name]
+      select:
+        kind: ClusterRole
+      options:
+        create: true
+
+# Create the appropriate name label for role binding
+- source:
+    fieldPath: metadata.name
+    kind: ClusterRoleBinding
+  targets:
+    - fieldPaths:
+        - metadata.labels.[app.kubernetes.io/name]
+      select:
+        kind: ClusterRoleBinding
+      options:
+        create: true

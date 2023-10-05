@@ -1,7 +1,15 @@
+# This kustomize file is used for kustomizing RBAC resources for the Addon Manager deployment.
+# Do not use directly, use as part of the overall Addon deployment (start at default).
 resources:
-  - role.yaml
+  - role.yaml # generated with controller-gen
   - serviceaccount.yaml
   - rolebinding.yaml
 
 configurations:
   - kustomizeconfig.yaml
+
+replacements:
+  - path: kustomizereplace.yaml
+
+commonLabels:
+  app.kubernetes.io/component: manager-rbac

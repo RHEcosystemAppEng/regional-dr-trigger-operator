@@ -7,11 +7,13 @@ package controller
 import (
 	"context"
 	"k8s.io/apimachinery/pkg/runtime"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// McraReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler.
 type McraReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
@@ -38,4 +40,9 @@ func (r *McraReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// TODO
 
 	return ctrl.Result{Requeue: false}, nil
+}
+
+// SetupWithManager is used for setting up the controller with the manager.
+func (r *McraReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).For(&addonv1alpha1.ManagedClusterAddOn{}).Complete(r)
 }

@@ -59,7 +59,7 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	reconciler := &McraReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
-	if err = ctrl.NewControllerManagedBy(mgr).For(&addonv1alpha1.ManagedClusterAddOn{}).Complete(reconciler); err != nil {
+	if err = reconciler.SetupWithManager(mgr); err != nil {
 		return err
 	}
 

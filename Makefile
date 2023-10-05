@@ -70,28 +70,27 @@ generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the various manifest files
 ########################################
 addon/deploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Deploy the addon manager on the Hub cluster
 	cp config/addon/kustomization.yaml config/addon/kustomization.yaml.tmp
-	cd config/addon && $(BIN_KUSTOMIZE) edit set image mcra-image=$(FULL_IMAGE_NAME)
-	$(BIN_KUSTOMIZE) build config/addon | $(BIN_OC) apply -f -
+	cd config/addon && $(BIN_KUSTOMIZE) edit set image manager-image=$(FULL_IMAGE_NAME)
+	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) apply -f -
 	mv config/addon/kustomization.yaml.tmp config/addon/kustomization.yaml
 
 addon/undeploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon manager on the Hub cluster
 	cp config/addon/kustomization.yaml config/addon/kustomization.yaml.tmp
-	cd config/addon && $(BIN_KUSTOMIZE) edit set image mcra-image=$(FULL_IMAGE_NAME)
-	$(BIN_KUSTOMIZE) build config/addon | $(BIN_OC) delete -f -
+	cd config/addon && $(BIN_KUSTOMIZE) edit set image manager-image=$(FULL_IMAGE_NAME)
+	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) delete -f -
 	mv config/addon/kustomization.yaml.tmp config/addon/kustomization.yaml
 
-
 addon/install: $(BIN_KUSTOMIZE) verify/tools/oc ## Install the addon agent for a spoke named in AGENT_CLUSTER_NAME on the Hub cluster
-	cp config/agent/kustomization.yaml config/agent/kustomization.yaml.tmp
-	cd config/agent && $(BIN_KUSTOMIZE) edit set namespace $(AGENT_CLUSTER_NAME)
-	$(BIN_KUSTOMIZE) build config/agent | $(BIN_OC) apply -f -
-	mv config/agent/kustomization.yaml.tmp config/agent/kustomization.yaml
+	cp config/samples/kustomization.yaml config/samples/kustomization.yaml.tmp
+	cd config/samples && $(BIN_KUSTOMIZE) edit set namespace $(AGENT_CLUSTER_NAME)
+	$(BIN_KUSTOMIZE) build config/samples | $(BIN_OC) apply -f -
+	mv config/samples/kustomization.yaml.tmp config/samples/kustomization.yaml
 
 addon/uninstall: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon agent for a spoke named in AGENT_CLUSTER_NAME on the Hub cluster
-	cp config/agent/kustomization.yaml config/agent/kustomization.yaml.tmp
-	cd config/agent && $(BIN_KUSTOMIZE) edit set namespace $(AGENT_CLUSTER_NAME)
-	$(BIN_KUSTOMIZE) build config/agent | $(BIN_OC) delete -f -
-	mv config/agent/kustomization.yaml.tmp config/agent/kustomization.yaml
+	cp config/samples/kustomization.yaml config/samples/kustomization.yaml.tmp
+	cd config/samples && $(BIN_KUSTOMIZE) edit set namespace $(AGENT_CLUSTER_NAME)
+	$(BIN_KUSTOMIZE) build config/samples | $(BIN_OC) delete -f -
+	mv config/samples/kustomization.yaml.tmp config/samples/kustomization.yaml
 
 ###########################
 ###### Test codebase ######

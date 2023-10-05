@@ -2,5 +2,6 @@ apiVersion: addon.open-cluster-management.io/v1alpha1
 kind: ManagedClusterAddOn
 metadata:
   name: multicluster-resiliency-addon
+  namespace: replace-with-cluster-namespace
 spec:
   installNamespace: open-cluster-management-agent-addon

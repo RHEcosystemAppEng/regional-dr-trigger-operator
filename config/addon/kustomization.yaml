@@ -1,26 +1,19 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: open-cluster-management
-
-# note: namePrefix is enforced on selective resources, see kustomizeconfig
-namePrefix: multicluster-resiliency-addon-
-
+# This kustomize file is used for kustomizing the Addon Manager deployment workload.
+# Do not use directly, use as part of the overall Addon deployment (start at default).
 resources:
-- ../rbac
 - deployment.yaml
 - clustermanagementaddon.yaml
-
-images:
-- name: manager-image
-  newName: mcra-image
-  newTag: replace-me
-- name: mcra-image
-  newName: quay.io/ecosystem-appeng/multicluster-resiliency-addon
-  newTag: devel
 
 configurations:
 - kustomizeconfig.yaml
 
 replacements:
 - path: kustomizereplace.yaml
+
+commonLabels:
+  app.kubernetes.io/component: manager-workload
+
+images:
+  - name: manager-image
+    newName: manager-image
+    newTag: replace-me
