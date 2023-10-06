@@ -61,9 +61,15 @@ build/image/push: build/image ## Build and push the image, customized with IMAGE
 ###########################################
 ###### Code and Manifests generation ######
 ###########################################
+generate/all: generate/manifests generate/code ## Generate both the code and the manifests
+
 .PHONY: generate/manifests
-generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the various manifest files
-	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controller/..."
+generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the manifest files
+	$(BIN_CONTROLLER_GEN) rbac:roleName=role crd paths="./..." output:crd:artifacts:config=config/crd/bases
+
+.PHONY: generate/code
+generate/code: $(BIN_CONTROLLER_GEN) ## Generate API boiler-plate code
+	$(BIN_CONTROLLER_GEN) object:headerFile="hack/header.txt" paths="./..."
 
 ########################################
 ###### Deploy and Apply resources ######

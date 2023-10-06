@@ -6,6 +6,7 @@ package controller
 
 import (
 	"context"
+	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
@@ -41,6 +42,9 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	logger := log.FromContext(ctx)
 
 	scheme := runtime.NewScheme()
+	if err := apiv1.Install(scheme); err != nil {
+		return err
+	}
 	if err := addonv1alpha1.Install(scheme); err != nil {
 		return err
 	}
@@ -49,7 +53,7 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		Scheme:                 scheme,
 		Logger:                 logger,
 		LeaderElection:         c.Options.LeaderElection,
-		LeaderElectionID:       "todo-change-me",
+		LeaderElectionID:       "multicluster-resiliency-addon.appeng.ecosystem.redhat.com",
 		Metrics:                server.Options{BindAddress: c.Options.MetricAddr},
 		HealthProbeBindAddress: c.Options.ProbeAddr,
 		BaseContext:            func() context.Context { return ctx },
@@ -58,7 +62,7 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
-	reconciler := &McraReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+	reconciler := &Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		return err
 	}

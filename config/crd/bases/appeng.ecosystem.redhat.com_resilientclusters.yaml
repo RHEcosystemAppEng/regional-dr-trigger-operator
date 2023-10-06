@@ -1,0 +1,55 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.13.0
+  name: resilientclusters.appeng.ecosystem.redhat.com
+spec:
+  group: appeng.ecosystem.redhat.com
+  names:
+    kind: ResilientCluster
+    listKind: ResilientClusterList
+    plural: resilientclusters
+    shortNames:
+    - rstc
+    singular: resilientcluster
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: ResilientCluster is used by the MultiCluster-Resiliency-Addon
+          for maintain the status and state of each cluster running the Addon Agent.
+          CRs should live in the relevant cluster-namespaces. One per Spoke, named
+          after the cluster it represents.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              bla:
+                description: Bla is a string field
+                type: string
+            type: object
+          status:
+            properties:
+              blaStatus:
+                description: BlaStatus is a string field
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

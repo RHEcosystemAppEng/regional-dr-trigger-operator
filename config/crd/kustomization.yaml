@@ -1,0 +1,5 @@
+# This kustomize file is used for kustomizing load CRDs.
+# Do not use directly, use as part of the overall Addon deployment (start at default).
+resources:
+  - bases/appeng.ecosystem.redhat.com_resilientclusters.yaml
+#+kubebuilder:scaffold:crdkustomizeresource

@@ -57,6 +57,24 @@ rules:
   - patch
   - update
 - apiGroups:
+  - appeng.ecosystem.redhat.com
+  resources:
+  - resilientclusters
+  verbs:
+  - '*'
+- apiGroups:
+  - appeng.ecosystem.redhat.com
+  resources:
+  - resilientclusters/finalizer
+  verbs:
+  - '*'
+- apiGroups:
+  - appeng.ecosystem.redhat.com
+  resources:
+  - resilientclusters/status
+  verbs:
+  - '*'
+- apiGroups:
   - authorization.k8s.io
   resources:
   - subjectaccessreviews

@@ -5,6 +5,8 @@ resources:
   - serviceaccount.yaml
   - rolebinding.yaml
 
+namePrefix: multicluster-resiliency-addon-
+
 configurations:
   - kustomizeconfig.yaml
 

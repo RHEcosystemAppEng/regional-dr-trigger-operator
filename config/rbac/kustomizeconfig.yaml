@@ -1,12 +1,3 @@
-# selective injection of the name prefix
-namePrefix:
-  - kind: ServiceAccount
-    path: metadata/name
-  - kind: ClusterRole
-    path: metadata/name
-  - kind: ClusterRoleBinding
-    path: metadata/name
-
 nameReference:
   # copy service-account name to the appropriate label
   - kind: ServiceAccount

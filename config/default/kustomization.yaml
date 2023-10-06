@@ -6,12 +6,10 @@ kind: Kustomization
 
 namespace: open-cluster-management
 
-# namePrefix is enforced on selective resources, see the various resources kustomizeconfig
-namePrefix: multicluster-resiliency-addon-
-
 resources:
-- ../rbac
-- ../addon
+  - ../crd
+  - ../rbac
+  - ../addon
 
 patches:
 #  - path: strategic/addon_manager_auth_proxy.yaml

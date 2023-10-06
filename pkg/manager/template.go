@@ -2,6 +2,8 @@
 
 package manager
 
+// This file hosts functions for loading templates.
+
 import rbacv1 "k8s.io/api/rbac/v1"
 
 // This file hosts functions and types for setting out Addon Manager registration process for requesting Agent Addons.
