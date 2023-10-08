@@ -62,8 +62,15 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
-	reconciler := &Reconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
-	if err = reconciler.SetupWithManager(mgr); err != nil {
+	// Reconciler registering for the framework's ManagedClusterAddOn
+	agentReconciler := &AgentReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+	if err = agentReconciler.SetupWithManager(mgr); err != nil {
+		return err
+	}
+
+	// Reconciler registering for our own ResilientCluster
+	clusterReconciler := &ClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+	if err = clusterReconciler.SetupWithManager(mgr); err != nil {
 		return err
 	}
 
