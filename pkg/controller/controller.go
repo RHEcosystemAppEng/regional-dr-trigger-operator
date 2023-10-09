@@ -63,7 +63,7 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	// Reconciler registering for the framework's ManagedClusterAddOn
-	agentReconciler := &AgentReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+	agentReconciler := &AddonReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 	if err = agentReconciler.SetupWithManager(mgr); err != nil {
 		return err
 	}

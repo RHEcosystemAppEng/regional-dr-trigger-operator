@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
+// +k8s:deepcopy-gen=package
 package v1
 
 // This file hosts the API types for K8s.
@@ -25,13 +26,11 @@ var (
 
 type (
 	ResilientClusterSpec struct {
-		// Bla is a string field
-		Bla string `json:"bla,omitempty"`
 	}
 
 	ResilientClusterStatus struct {
-		// BlaStatus is a string field
-		BlaStatus string `json:"blaStatus,omitempty"`
+		// Conditions describes the status of the monitored Spoke Cluster
+		Conditions []metav1.Condition `json:"conditions,omitempty"`
 	}
 
 	// +kubebuilder:object:root=true

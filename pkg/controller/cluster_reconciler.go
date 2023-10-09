@@ -13,6 +13,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const finalizerName = "multicluster-resiliency-addon/finalizer"
+
 // ClusterReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler for
 // ResilientCluster CRs.
 type ClusterReconciler struct {
