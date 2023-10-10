@@ -18,6 +18,8 @@ commonLabels:
   app.kubernetes.io/component: manager-workload
 
 images:
-  - name: manager-image
-    newName: manager-image
-    newTag: replace-me
+- name: manager-image
+  newName: quay.io/ecosystem-appeng/multicluster-resiliency-addon
+  newTag: devel
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization

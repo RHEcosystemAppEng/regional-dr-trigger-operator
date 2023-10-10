@@ -6,14 +6,18 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const finalizerName = "multicluster-resiliency-addon/finalizer"
+const mcraFinalizerName = "multicluster-resiliency-addon/finalizer"
 
 // ClusterReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler for
 // ResilientCluster CRs.
@@ -28,10 +32,44 @@ type ClusterReconciler struct {
 
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	logger.Info("TODO-ADD-CLUSTER-RECONCILE-LOGIC")
-	// TODO
 
-	return ctrl.Result{Requeue: false}, nil
+	subject := types.NamespacedName{
+		Namespace: req.Namespace,
+		Name:      req.Name,
+	}
+
+	// fetch the ResilientCluster cr, end loop if not found
+	rc := &apiv1.ResilientCluster{}
+	if err := r.Client.Get(ctx, subject, rc); err != nil {
+		if errors.IsNotFound(err) {
+			logger.Info(fmt.Sprintf("%s not found", subject.String()))
+			return ctrl.Result{}, nil
+		}
+
+		logger.Error(err, fmt.Sprintf("%s fetch failed", subject.String()))
+		return ctrl.Result{}, err
+	}
+
+	// deletion cleanup
+	if !rc.DeletionTimestamp.IsZero() {
+		// ResilientCluster is in delete process
+		if controllerutil.ContainsFinalizer(rc, mcraFinalizerName) {
+			// TODO add cleanup code here
+
+			// when cleanup done, remove the finalizer
+			controllerutil.RemoveFinalizer(rc, mcraFinalizerName)
+			if err := r.Client.Update(ctx, rc); err != nil {
+				logger.Error(err, fmt.Sprintf("%s failed removing finalizer", subject.String()))
+				return ctrl.Result{}, err
+			}
+		}
+
+		// if in deletion process, do not continue further
+		return ctrl.Result{}, nil
+	}
+	// TODO add business logic here
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager is used for setting up the controller with the manager.

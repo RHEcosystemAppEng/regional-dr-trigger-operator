@@ -54,11 +54,11 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	mca := &addonv1alpha1.ManagedClusterAddOn{}
 	if err := r.Client.Get(ctx, subject, mca); err != nil {
 		if errors.IsNotFound(err) {
-			logger.Info(fmt.Sprintf("%s not found", subject.String()))
+			logger.Info(fmt.Sprintf("%s ManagedClusterAddOn not found", subject.String()))
 			return ctrl.Result{}, nil
 		}
 
-		logger.Error(err, "failed to fetch ManagedClusterAddon")
+		logger.Error(err, fmt.Sprintf("%s ManagedClusterAddOn failed fetching", subject.String()))
 		return ctrl.Result{}, err
 	}
 
@@ -75,7 +75,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	if err := r.Client.Get(ctx, subject, rc); err != nil {
 		// only not-found errors are acceptable here
 		if !errors.IsNotFound(err) {
-			logger.Error(err, fmt.Sprintf("ResilientCluster not found %s", subject.String()))
+			logger.Error(err, fmt.Sprintf("%s ResilientCluster failed fetching", subject.String()))
 			return ctrl.Result{}, err
 		}
 		rcFound = false
@@ -83,28 +83,27 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	// is the ManagedClusterAddon being deleted? if so, we need to delete the corresponding ResilientCluster
 	if !mca.DeletionTimestamp.IsZero() {
-		logger.Info(fmt.Sprintf("ManagedClusterAddon %s is being deleted, deleting ResilientCluster", subject.String()))
+		logger.Info(fmt.Sprintf("%s ManagedClusterAddon is deleted, deleting ResilientCluster", subject.String()))
 
 		// do we have a ResilientCluster? if so, we need to delete it
 		if rcFound {
 			// if the ResilientCluster NOT already being deleted, we need to delete it
 			if rc.DeletionTimestamp.IsZero() {
 				if err := r.Client.Delete(ctx, rc); err != nil {
-					logger.Error(err, fmt.Sprintf("failed deleting ResilientCluster %s", subject.String()))
+					logger.Error(err, fmt.Sprintf("%s ResilientCluster deletion failed", subject.String()))
 					return ctrl.Result{}, err
 				}
 			}
 		}
-
 		return ctrl.Result{}, nil
 	}
 
 	// do we have a ResilientCluster? we need to either create or update it
 	if rcFound {
 		// ResilientCluster exists, we need to update with the current status
-		rc.Status.Conditions = mca.Status.Conditions
+		rc.Status = apiv1.ResilientClusterStatus{Conditions: mca.Status.Conditions}
 		if err := r.Client.Update(ctx, rc); err != nil {
-			logger.Error(err, fmt.Sprintf("failed updating ResilientCluster %s", subject.String()))
+			logger.Error(err, fmt.Sprintf("%s ResilientCluster update failed", subject.String()))
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -112,13 +111,14 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		rc.SetName(subject.Name)
 		rc.SetNamespace(subject.Namespace)
 		rc.SetCreationTimestamp(metav1.NewTime(time.Now()))
-		rc.SetFinalizers([]string{finalizerName})
+		rc.SetFinalizers([]string{mcraFinalizerName})
 		rc.SetOwnerReferences([]metav1.OwnerReference{
 			*metav1.NewControllerRef(mca, mca.GetObjectKind().GroupVersionKind()),
 		})
+		rc.Status = apiv1.ResilientClusterStatus{Conditions: mca.Status.Conditions}
 
 		if err := r.Client.Create(ctx, rc); err != nil {
-			logger.Error(err, fmt.Sprintf("failed creating ResilientCluster %s", subject.String()))
+			logger.Error(err, fmt.Sprintf("%s ResilientCluster creation failed", subject.String()))
 			return ctrl.Result{}, err
 		}
 	}
