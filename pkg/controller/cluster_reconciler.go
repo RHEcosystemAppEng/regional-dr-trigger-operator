@@ -2,7 +2,7 @@
 
 package controller
 
-// This file hosts our Cluster Reconciler implementation registering for our ResilientCluster CRs.
+// This file hosts our ClusterReconciler implementation registering for our ResilientCluster CRs.
 
 import (
 	"context"
@@ -26,10 +26,12 @@ type ClusterReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// Reconcile is watching ResilientCluster CRs, determining whether or not a new Spoke cluster is required, and handling
+// the cluster provisioning using OpenShift Hive API.
+//
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters/finalizer,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters/status,verbs=*
-
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -64,7 +66,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			}
 		}
 
-		// if in deletion process, do not continue further
+		// no further progress is required while deleting objects
 		return ctrl.Result{}, nil
 	}
 	// TODO add business logic here
@@ -72,7 +74,8 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager is used for setting up the controller with the manager.
+// SetupWithManager is used for setting up the controller named 'mcra-managed-cluster-cluster-controller' with the
+// manager.
 func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("mcra-managed-cluster-cluster-controller").

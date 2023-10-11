@@ -13,8 +13,7 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/lease"
 )
 
-// Agent is a receiver representing the Addon agent.
-// It encapsulates the Agent Options which will be used to configure the agent run.
+// Agent is a receiver representing the Addon agent. It encapsulates the Agent Options used to configure the agent run.
 // Use NewAgent for instantiation.
 type Agent struct {
 	Options *Options
@@ -27,13 +26,13 @@ type Options struct {
 	AgentNamespace    string
 }
 
-// NewAgent is used as a factory for creating an Agent instance.
+// NewAgent is used as a factory for creating an Agent instance with an Options instance.
 func NewAgent() Agent {
 	return Agent{Options: &Options{}}
 }
 
-// Run is used for running the Addon Agent.
-// It takes a context and the kubeconfig for the Spoke it runs on.
+// Run is used for running the Addon agent. It takes a context and the kubeconfig for the Spoke it runs on. This
+// function blocks while waiting for the context to be done.
 func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	spokeClientSet, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {

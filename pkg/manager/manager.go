@@ -15,14 +15,11 @@ import (
 
 const AddonName = "multicluster-resiliency-addon"
 
-// Resource templates for deploying the Addon Agent to Spokes and RBAC resource for the cluster-namespace.
-//
 //go:embed templates/agent templates/rbac
 var fsys embed.FS
 
-// Manager is a receiver representing the Addon manager.
-// It encapsulates the Manager Options which will be used to configure the manager run.
-// Use NewManager for instantiation.
+// Manager is a receiver representing the Addon manager. It encapsulates the Manager Options which will be used to
+// configure the manager run. Use NewManager for instantiation.
 type Manager struct {
 	Options *Options
 }
@@ -36,13 +33,13 @@ type Options struct {
 	AgentImage               string
 }
 
-// NewManager is used as a factory for creating a Manager instance.
+// NewManager is used as a factory for creating a Manager instance with an Options instance.
 func NewManager() Manager {
 	return Manager{Options: &Options{}}
 }
 
-// Run is used for running the Addon Manager.
-// It takes a context and the kubeconfig for the Hub it runs on.
+// Run is used for running the Addon manager. It takes a context and the kubeconfig for the Hub it runs on. This
+// function blocks while running the controller (the Agent manager runs as a goroutine).
 func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	logger := log.FromContext(ctx)
 
@@ -73,9 +70,5 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	})
 
 	// blocking
-	if err = ctrl.Run(ctx, kubeConfig); err != nil {
-		return err
-	}
-
-	return nil
+	return ctrl.Run(ctx, kubeConfig)
 }

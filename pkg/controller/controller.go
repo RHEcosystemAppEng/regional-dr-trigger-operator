@@ -2,7 +2,7 @@
 
 package controller
 
-// This file hosts functions and types for instantiating our controller as part of our Addon Manager on the Hub cluster.
+// This file hosts functions and types for instantiating the controller as part of the Addon Manager on the Hub cluster.
 
 import (
 	"context"
@@ -16,9 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
-// Controller is a receiver representing the Addon controller.
-// It encapsulates the Controller Options which will be used to configure the controller run.
-// Use NewControllerWithOptions for instantiation.
+// Controller is a receiver representing the Addon controller. It encapsulates the Controller Options which will be used
+// to configure the controller run. Use NewControllerWithOptions for instantiation.
 type Controller struct {
 	Options *Options
 }
@@ -30,17 +29,17 @@ type Options struct {
 	ProbeAddr      string
 }
 
-// NewControllerWithOptions is used as a factory for creating a Controller instance.
+// NewControllerWithOptions is used as a factory for creating a Controller instance with a given Options instance.
 func NewControllerWithOptions(options *Options) Controller {
 	return Controller{Options: options}
 }
 
-// Run is used for running the Addon controller.
-// It takes a context and the kubeconfig for the Hub it runs on.
-// This function blocks while running the controller's manager.
+// Run is used for running the Addon controller. It takes a context and the kubeconfig for the Hub it runs on. This
+// function blocks while running the controller's manager.
 func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	logger := log.FromContext(ctx)
 
+	// create and configure our scheme
 	scheme := runtime.NewScheme()
 	if err := apiv1.Install(scheme); err != nil {
 		return err
@@ -49,6 +48,7 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
+	// create a manager for our controller
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
 		Logger:                 logger,
@@ -62,27 +62,27 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
-	// Reconciler registering for the framework's ManagedClusterAddOn
+	// configure reconciler registering for the framework's ManagedClusterAddOn
 	agentReconciler := &AddonReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 	if err = agentReconciler.SetupWithManager(mgr); err != nil {
 		return err
 	}
 
-	// Reconciler registering for our own ResilientCluster
+	// configure reconciler registering for our own ResilientCluster
 	clusterReconciler := &ClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 	if err = clusterReconciler.SetupWithManager(mgr); err != nil {
 		return err
 	}
 
+	// configure health checks
 	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		return err
 	}
-
 	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		return err
 	}
 
-	// blocking
+	// start the manager, blocking
 	if err = mgr.Start(ctx); err != nil {
 		return err
 	}

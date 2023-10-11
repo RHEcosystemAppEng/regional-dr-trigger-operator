@@ -2,7 +2,7 @@
 
 package v1
 
-// This file hosts the API types for K8s.
+// This file hosts the API types for K8s and generation instructions for generating manifest with controller-gen.
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,62 +14,55 @@ import (
 // +k8s:deepcopy-gen=package
 
 var (
-	// GroupVersion is group version used to register these objects
-	GroupVersion = schema.GroupVersion{Group: "appeng.ecosystem.redhat.com", Version: "v1"}
+	// groupVersion is group version used to register the objects in this file.
+	groupVersion = schema.GroupVersion{Group: "appeng.ecosystem.redhat.com", Version: "v1"}
 
-	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
-	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
+	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
+	schemeBuilder = &scheme.Builder{GroupVersion: groupVersion}
 
 	// Install adds the types in this group-version to the given scheme.
-	Install = SchemeBuilder.AddToScheme
+	Install = schemeBuilder.AddToScheme
 )
 
 type (
-	// ResilientClusterSpec defines the specification for creating a ResilientCluster
+	// ResilientClusterSpec defines the specification for creating a ResilientCluster.
 	ResilientClusterSpec struct {
-		// StatusHistory represents the number of previous ClusterStatus CRs we should take into consideration for
-		// determining the Spoke cluster status
-		// +kubebuilder:validation:Minimum=1
-		// +kubebuilder:validation:Maximum=5
-		// +kubebuilder:default=1
-		StatusHistory int `json:"statusHistory,omitempty"`
 	}
 
-	// ClustarAvailability is a bool representing whether not the Spoke cluster is available
-	ClustarAvailability bool
+	// ClustarAvailability is a bool representing whether not the Spoke cluster is available. Use ClusterAvailable and
+	// ClusterNotAvailable.
+	ClustarAvailability string
 
-	// ClusterStatus represents a status of the Spoke cluster at a specific time
+	// ClusterStatus represents a status of the Spoke cluster at a specific time.
 	ClusterStatus struct {
-		Availability ClustarAvailability `json:"availability"`
-		Time         metav1.Time         `json:"time"`
+		// +kubebuilder:validation:Enum=True;False
+		Availability ClustarAvailability `json:"availability,omitempty"`
+		Time         metav1.Time         `json:"time,omitempty"`
 	}
 
-	// ResilientClusterStatus defines the current status of the Spoke cluster.
+	// ResilientClusterStatus encapsulated the initial, current, and previous statuses of the ResilientCluster.
 	ResilientClusterStatus struct {
-		InitialStatus *ClusterStatus `json:"initialStatus"`
-
-		CurrentStatus *ClusterStatus `json:"currentStatus"`
-
-		// +kubebuilder:validation:MinItems=1
-		// +kubebuilder:validation:MaxItems=5
-		// +kubebuilder:validation:UniqueItems=true
-		PreviousStatuses []*ClusterStatus `json:"previousStatuses"`
+		InitialStatus  ClusterStatus `json:"initialStatus"`
+		CurrentStatus  ClusterStatus `json:"currentStatus"`
+		PreviousStatus ClusterStatus `json:"previousStatus,omitempty"`
 	}
 
 	// ResilientCluster is used by the MultiCluster-Resiliency-Addon for maintain the status and state of each cluster
 	// running the Addon Agent. CRs should live in the relevant cluster-namespaces. One per Spoke, named after the
 	// cluster it represents.
+	//
 	// +kubebuilder:object:root=true
 	// +kubebuilder:resource:scope=Namespaced,shortName=rstc
+	// +kubebuilder:printcolumn:name=Available,type=string,JSONPath=`.status.currentStatus.availability`
 	ResilientCluster struct {
 		metav1.TypeMeta   `json:",inline"`
 		metav1.ObjectMeta `json:"metadata,omitempty"`
-
-		Spec   ResilientClusterSpec   `json:"spec,omitempty"`
-		Status ResilientClusterStatus `json:"status"`
+		Spec              ResilientClusterSpec   `json:"spec,omitempty"`
+		Status            ResilientClusterStatus `json:"status"`
 	}
 
 	// ResilientClusterList is a List resource for ResilientCluster resources.
+	//
 	// +kubebuilder:object:root=true
 	ResilientClusterList struct {
 		metav1.TypeMeta `json:",inline"`
@@ -79,10 +72,11 @@ type (
 )
 
 const (
-	ClusterAvailable    ClustarAvailability = true
-	ClusterNotAvailable ClustarAvailability = false
+	ClusterAvailable    ClustarAvailability = "True"
+	ClusterNotAvailable ClustarAvailability = "False"
 )
 
+// init is used to register the Addon API types with the scheme previously configured with groupVersion.
 func init() {
-	SchemeBuilder.Register(&ResilientCluster{}, &ResilientClusterList{})
+	schemeBuilder.Register(&ResilientCluster{}, &ResilientClusterList{})
 }
