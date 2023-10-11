@@ -44,12 +44,23 @@ BIN_OC ?= oc##@ Set a custom 'oc' binary path if not in PATH
 AGENT_CLUSTER_NAME ?= cluster1##@ Set the name of the Spoke to install the addon manager in, defaults to 'cluster1'
 COVERAGE_THRESHOLD ?= 60##@ Set the unit test code coverage threshold, defaults to '60'
 
+#########################
+###### Build flags ######
+#########################
+COMMIT_HASH = $(strip $(shell git rev-parse --short HEAD))
+BUILD_DATE = $(strip $(shell date -u +"%Y-%m-%dT%H:%M:%SZ"))
+LDFLAGS=-ldflags="\
+-X 'github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version.tag=${IMAGE_TAG}' \
+-X 'github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version.commit=${COMMIT_HASH}' \
+-X 'github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version.date=${BUILD_DATE}' \
+"
+
 ####################################
 ###### Build and push project ######
 ####################################
 .PHONY: build
 build: $(LOCALBUILD) ## Build the project as a binary in ./build
-	go build -o $(LOCALBUILD)/mcra ./main.go
+	go build $(LDFLAGS) -o $(LOCALBUILD)/mcra ./main.go
 
 .PHONY: build/image
 build/image: ## Build the image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG

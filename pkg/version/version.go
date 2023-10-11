@@ -2,14 +2,23 @@
 
 package version
 
+// This file hosts a k8s suitable version object.
+
 import "k8s.io/apimachinery/pkg/version"
 
-// verInfo is the version-info for this project
-var verInfo = version.Info{
-	GitVersion: "TODO-Replace-Me-And-Add-Fields",
-}
+var (
+	tag    = "replace-me"
+	commit = "replace-me"
+	date   = "replace-me"
+	gover  = "replace-me"
+)
 
-// Get is used for retrieving this project's version info.
+// Get is used for retrieving this project's version.Info.
 func Get() version.Info {
-	return verInfo
+	return version.Info{
+		GitVersion: tag,
+		GitCommit:  commit,
+		BuildDate:  date,
+		GoVersion:  gover,
+	}
 }
