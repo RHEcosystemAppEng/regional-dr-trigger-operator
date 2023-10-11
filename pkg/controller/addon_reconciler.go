@@ -16,7 +16,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"time"
 )
 
 // AddonReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler for
@@ -57,7 +56,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			logger.Info(fmt.Sprintf("%s ManagedClusterAddOn not found", subject.String()))
 			return ctrl.Result{}, nil
 		}
-
 		logger.Error(err, fmt.Sprintf("%s ManagedClusterAddOn failed fetching", subject.String()))
 		return ctrl.Result{}, err
 	}
@@ -98,10 +96,14 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, nil
 	}
 
+	// create a new status for the ResilientCluster
+	currentStatus := getCurrentClusterStatus(mca)
+	rc.Status.CurrentStatus = currentStatus
+	rc.Status.PreviousStatuses = append(rc.Status.PreviousStatuses, currentStatus) // TODO limit history based on spec
+
 	// do we have a ResilientCluster? we need to either create or update it
 	if rcFound {
 		// ResilientCluster exists, we need to update with the current status
-		rc.Status = apiv1.ResilientClusterStatus{Conditions: mca.Status.Conditions}
 		if err := r.Client.Update(ctx, rc); err != nil {
 			logger.Error(err, fmt.Sprintf("%s ResilientCluster update failed", subject.String()))
 			return ctrl.Result{}, err
@@ -110,12 +112,12 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		// ResilientCluster doesn't exist, we need to create it
 		rc.SetName(subject.Name)
 		rc.SetNamespace(subject.Namespace)
-		rc.SetCreationTimestamp(metav1.NewTime(time.Now()))
+		rc.SetCreationTimestamp(metav1.Now())
 		rc.SetFinalizers([]string{mcraFinalizerName})
 		rc.SetOwnerReferences([]metav1.OwnerReference{
 			*metav1.NewControllerRef(mca, mca.GetObjectKind().GroupVersionKind()),
 		})
-		rc.Status = apiv1.ResilientClusterStatus{Conditions: mca.Status.Conditions}
+		rc.Status.InitialStatus = currentStatus
 
 		if err := r.Client.Create(ctx, rc); err != nil {
 			logger.Error(err, fmt.Sprintf("%s ResilientCluster creation failed", subject.String()))
@@ -132,4 +134,20 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Named("mcra-managed-cluster-agent-controller").
 		For(&addonv1alpha1.ManagedClusterAddOn{}).
 		Complete(r)
+}
+
+// getCurrentClusterStatus is used for creating a ClusterStatus from based on a ManagedClusterAddon.
+func getCurrentClusterStatus(mca *addonv1alpha1.ManagedClusterAddOn) *apiv1.ClusterStatus {
+	status := &apiv1.ClusterStatus{
+		Availability: apiv1.ClusterNotAvailable,
+		Time:         metav1.Now(),
+	}
+
+	for _, cond := range mca.Status.Conditions {
+		if cond.Type == "Available" && cond.Status == metav1.ConditionTrue {
+			status.Availability = apiv1.ClusterAvailable
+		}
+	}
+
+	return status
 }
