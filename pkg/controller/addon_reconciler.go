@@ -28,10 +28,6 @@ type AddonReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// Reconcile is watching ManagedClusterAddOn CRs and creating/updating/deleting the corresponding ResilientCluster CRs.
-// Note, the permissions listed here for the controller-gen are required for the Addon framework. Permissions for our
-// own Addon are listed in ClusterReconciler.Reconcile.
-//
 // +kubebuilder:rbac:groups="",resources=configmaps;events,verbs=get;list;watch;create;update;delete;deletecollection;patch
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;delete
@@ -46,6 +42,10 @@ type AddonReconciler struct {
 // +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons/finalizers,verbs=update
 // +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons/status,verbs=update;patch
+
+// Reconcile is watching ManagedClusterAddOn CRs and creating/updating/deleting the corresponding ResilientCluster CRs.
+// Note, the permissions listed here for the controller-gen are required for the Addon framework. Permissions for our
+// own Addon are listed in ClusterReconciler.Reconcile.
 func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 

@@ -1,0 +1,67 @@
+- source:
+    fieldPath: metadata.namespace
+    kind: Service
+    name: webhook-service
+  targets:
+    - fieldPaths:
+        - spec.dnsNames.0
+        - spec.dnsNames.1
+      select:
+        kind: Certificate
+      options:
+        delimiter: .
+        index: 1
+
+- source:
+    fieldPath: metadata.name
+    kind: Service
+    name: webhook-service
+  targets:
+    - fieldPaths:
+        - spec.dnsNames.0
+        - spec.dnsNames.1
+      select:
+        kind: Certificate
+      options:
+        delimiter: .
+        index: 0
+
+- source:
+    fieldPath: metadata.namespace
+    kind: Certificate
+    name: serving-cert
+  targets:
+    - fieldPaths:
+        - metadata.annotations.[cert-manager.io/inject-ca-from]
+      select:
+        kind: CustomResourceDefinition
+      options:
+        delimiter: /
+        index: 0
+    - fieldPaths:
+        - metadata.annotations.[cert-manager.io/inject-ca-from]
+      select:
+        kind: ValidatingWebhookConfiguration
+      options:
+        delimiter: /
+        index: 0
+
+- source:
+    fieldPath: metadata.name
+    kind: Certificate
+    name: serving-cert
+  targets:
+    - fieldPaths:
+        - metadata.annotations.[cert-manager.io/inject-ca-from]
+      select:
+        kind: CustomResourceDefinition
+      options:
+        delimiter: /
+        index: 1
+    - fieldPaths:
+        - metadata.annotations.[cert-manager.io/inject-ca-from]
+      select:
+        kind: ValidatingWebhookConfiguration
+      options:
+        delimiter: /
+        index: 1

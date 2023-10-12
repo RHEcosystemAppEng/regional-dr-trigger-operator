@@ -76,7 +76,9 @@ generate/all: generate/manifests generate/code ## Generate both the code and the
 
 .PHONY: generate/manifests
 generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the manifest files
-	$(BIN_CONTROLLER_GEN) rbac:roleName=role crd paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controller/..."
+	$(BIN_CONTROLLER_GEN) crd paths="./api/..."
+	$(BIN_CONTROLLER_GEN) webhook paths="./pkg/webhook/..."
 
 .PHONY: generate/code
 generate/code: $(BIN_CONTROLLER_GEN) ## Generate API boiler-plate code

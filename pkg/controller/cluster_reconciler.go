@@ -26,12 +26,12 @@ type ClusterReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// Reconcile is watching ResilientCluster CRs, determining whether or not a new Spoke cluster is required, and handling
-// the cluster provisioning using OpenShift Hive API.
-//
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters/finalizer,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters/status,verbs=*
+
+// Reconcile is watching ResilientCluster CRs, determining whether a new Spoke cluster is required, and handling
+// the cluster provisioning using OpenShift Hive API.
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 

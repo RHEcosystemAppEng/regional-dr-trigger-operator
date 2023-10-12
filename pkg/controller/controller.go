@@ -74,6 +74,13 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
+	// load validation admission webhook for validating ResilientCluster crs
+	// TODO uncomment the following to activate the validating rstc webhook #[WEBHOOK]
+	//validatingWebhook := &webhook.ValidateResilientCluster{}
+	//if err = validatingWebhook.SetupWebhookWithManager(mgr); err != nil {
+	//	return err
+	//}
+
 	// configure health checks
 	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		return err
@@ -83,9 +90,5 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	// start the manager, blocking
-	if err = mgr.Start(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return mgr.Start(ctx)
 }

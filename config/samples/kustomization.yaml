@@ -5,3 +5,6 @@ resources:
   - managedclusteraddon.yaml
 
 namespace: replace-me
+
+commonLabels:
+  app.kubernetes.io/component: agent-config

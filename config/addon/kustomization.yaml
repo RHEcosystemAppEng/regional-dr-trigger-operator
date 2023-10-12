@@ -4,8 +4,6 @@ resources:
 - deployment.yaml
 - clustermanagementaddon.yaml
 
-
-# namePrefix is enforced on selective resources, see kustomizeconfig
 namePrefix: multicluster-resiliency-addon-
 
 configurations:
