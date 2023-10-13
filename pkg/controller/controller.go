@@ -7,6 +7,7 @@ package controller
 import (
 	"context"
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/webhook"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
@@ -74,12 +75,11 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
-	// load validation admission webhook for validating ResilientCluster crs
-	// TODO uncomment the following to activate the validating rstc webhook #[WEBHOOK]
-	//validatingWebhook := &webhook.ValidateResilientCluster{}
-	//if err = validatingWebhook.SetupWebhookWithManager(mgr); err != nil {
-	//	return err
-	//}
+	// load validation admission webhook for validating ResilientCluster crs #[WEBHOOK]
+	validatingWebhook := &webhook.ValidateResilientCluster{Client: mgr.GetClient()}
+	if err = validatingWebhook.SetupWebhookWithManager(mgr); err != nil {
+		return err
+	}
 
 	// configure health checks
 	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

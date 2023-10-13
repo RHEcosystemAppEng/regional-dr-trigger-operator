@@ -10,7 +10,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-resilientcluster
+      path: /validate-appeng-ecosystem-redhat-com-v1-resilientcluster
   failurePolicy: Fail
   name: resilientcluster.appeng.ecosystem
   rules:

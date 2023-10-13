@@ -10,17 +10,17 @@ resources:
   - ../crd
   - ../rbac
   - ../addon
-#  - ../webhook #[WEBHOOK]
-#  - ../certmanager #[CERT_MANAGER]
+  - ../webhook #[WEBHOOK]
+  - ../certmanager #[CERT_MANAGER]
 
 patches:
-#  - path: strategic/addon_manager_auth_proxy.yaml
+#  - path: strategic/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
   - path: strategic/addon_manager_probes.yaml
   - path: strategic/addon_manager_replicas.yaml
   - path: strategic/addon_manager_resources.yaml
   - path: strategic/addon_manager_security.yaml
-#  - path: strategic/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
-#  - path: strategic/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
+  - path: strategic/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
+  - path: strategic/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
   - target:
       kind: Deployment
       name: manager
@@ -33,4 +33,4 @@ commonLabels:
 
 replacements:
   - path: kustomizereplace.yaml
-#  - path: kustomizereplace_certmanager.yaml #[CERT_MANAGER]
+  - path: kustomizereplace_certmanager.yaml #[CERT_MANAGER]

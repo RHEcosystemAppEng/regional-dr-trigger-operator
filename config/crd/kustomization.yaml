@@ -3,8 +3,8 @@
 resources:
   - appeng.ecosystem.redhat.com_resilientclusters.yaml
 
-#patches:
-#  - path: patches/crd_certmanager_annotations.yaml #[CERT_MANAGER]
+patches:
+  - path: patches/crd_certmanager_annotations.yaml #[CERT_MANAGER]
 
 commonLabels:
   app.kubernetes.io/component: addon-core

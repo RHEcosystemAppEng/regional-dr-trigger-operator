@@ -7,5 +7,5 @@ namePrefix: multicluster-resiliency-addon-
 configurations:
   - kustomizeconfig.yaml
 
-commonLabels:
-  app.kubernetes.io/component: admission-webhook
+#commonLabels:
+#  app.kubernetes.io/component: admission-webhook
