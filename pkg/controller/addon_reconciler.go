@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/metrics"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -179,6 +180,9 @@ func generateCurrentClusterStatus(mca *addonv1alpha1.ManagedClusterAddOn) apiv1.
 	// look for an Available condition in the MCA and set RC availability accordingly
 	if meta.IsStatusConditionTrue(mca.Status.Conditions, "Available") {
 		status.Availability = apiv1.ClusterAvailable
+		metrics.ResilientSpokeAvailable.WithLabelValues(mca.Name).Inc()
+	} else {
+		metrics.ResilientSpokeNotAvailable.WithLabelValues(mca.Name).Inc()
 	}
 
 	return status
