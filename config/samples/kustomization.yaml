@@ -6,5 +6,6 @@ resources:
 
 namespace: replace-me
 
-commonLabels:
-  app.kubernetes.io/component: agent-config
+labels:
+  - pairs:
+      app.kubernetes.io/component: agent-config

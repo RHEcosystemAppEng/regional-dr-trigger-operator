@@ -1,7 +1,0 @@
-# This patch injects manager container replica number
-kind: Deployment
-apiVersion: apps/v1
-metadata:
-  name: manager
-spec:
-  replicas: 1

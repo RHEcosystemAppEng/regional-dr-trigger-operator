@@ -16,7 +16,6 @@ resources:
 patches:
 #  - path: strategic/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
   - path: strategic/addon_manager_probes.yaml
-  - path: strategic/addon_manager_replicas.yaml
   - path: strategic/addon_manager_resources.yaml
   - path: strategic/addon_manager_security.yaml
   - path: strategic/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
@@ -27,9 +26,20 @@ patches:
       version: v1
     path: json/manager_deployment_args.yaml # configure manager deployment arguments
 
+replicas:
+  - name: manager
+    count: 1
+
 commonLabels:
   app.kubernetes.io/part-of: multicluster-resiliency-addon
-  app.kubernetes.io/managed-by: kustomize
+
+# this breaks for devel versions
+#buildMetadata:
+#  - managedByLabel
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: kustomize
+    includeTemplates: true
 
 replacements:
   - path: kustomizereplace.yaml

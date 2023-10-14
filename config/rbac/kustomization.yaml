@@ -13,5 +13,6 @@ configurations:
 replacements:
   - path: kustomizereplace.yaml
 
-commonLabels:
-  app.kubernetes.io/component: manager-rbac
+labels:
+  - pairs:
+      app.kubernetes.io/component: manager-rbac

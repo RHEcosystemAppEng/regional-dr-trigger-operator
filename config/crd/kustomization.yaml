@@ -6,5 +6,6 @@ resources:
 patches:
   - path: patches/crd_certmanager_annotations.yaml #[CERT_MANAGER]
 
-commonLabels:
-  app.kubernetes.io/component: addon-core
+labels:
+  - pairs:
+      app.kubernetes.io/component: addon-core

@@ -12,8 +12,10 @@ configurations:
 replacements:
 - path: kustomizereplace.yaml
 
-commonLabels:
-  app.kubernetes.io/component: manager-workload
+labels:
+- includeTemplates: true
+  pairs:
+    app.kubernetes.io/component: manager-workload
 
 images:
 - name: manager-image
