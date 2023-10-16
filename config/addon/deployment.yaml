@@ -19,4 +19,5 @@ spec:
         args:
           - manager
           - --agent-image=manager-image
+          - --service-account=sa
           - --controller-leader-election

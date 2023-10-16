@@ -17,6 +17,7 @@ import (
 
 type ValidateResilientCluster struct {
 	client.Client
+	ServiceAccount string
 }
 
 func (v *ValidateResilientCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -24,21 +25,21 @@ func (v *ValidateResilientCluster) SetupWebhookWithManager(mgr ctrl.Manager) err
 }
 
 func (v *ValidateResilientCluster) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	if err := verifyUser(ctx); err != nil {
+	if err := v.verifyUser(ctx); err != nil {
 		return nil, err
 	}
 	return nil, v.verifyOnlyOneInNamespace(ctx)
 }
 
 func (v *ValidateResilientCluster) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (admission.Warnings, error) {
-	return nil, verifyUser(ctx)
+	return nil, v.verifyUser(ctx)
 }
 
 func (v *ValidateResilientCluster) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	return nil, verifyUser(ctx)
+	return nil, v.verifyUser(ctx)
 }
 
-func verifyUser(ctx context.Context) error {
+func (v *ValidateResilientCluster) verifyUser(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	request, err := admission.RequestFromContext(ctx)
 	if err != nil {
@@ -49,7 +50,7 @@ func verifyUser(ctx context.Context) error {
 	userArr := strings.Split(request.UserInfo.Username, ":")
 	if userArr[0] == "system" &&
 		userArr[1] == "serviceaccount" &&
-		userArr[3] == "multicluster-resiliency-addon-sa" {
+		userArr[3] == v.ServiceAccount {
 		return nil
 	}
 

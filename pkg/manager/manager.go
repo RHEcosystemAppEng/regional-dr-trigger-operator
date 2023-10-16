@@ -31,6 +31,7 @@ type Options struct {
 	ControllerLeaderElection bool
 	AgentReplicas            int
 	AgentImage               string
+	ServiceAccount           string
 }
 
 // NewManager is used as a factory for creating a Manager instance with an Options instance.
@@ -67,6 +68,7 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		MetricAddr:     m.Options.ControllerMetricAddr,
 		ProbeAddr:      m.Options.ControllerProbeAddr,
 		LeaderElection: m.Options.ControllerLeaderElection,
+		ServiceAccount: m.Options.ServiceAccount,
 	})
 
 	// blocking

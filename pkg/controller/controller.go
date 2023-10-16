@@ -28,6 +28,7 @@ type Options struct {
 	MetricAddr     string
 	LeaderElection bool
 	ProbeAddr      string
+	ServiceAccount string
 }
 
 // NewControllerWithOptions is used as a factory for creating a Controller instance with a given Options instance.
@@ -76,7 +77,7 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	// load validation admission webhook for validating ResilientCluster crs #[WEBHOOK]
-	validatingWebhook := &webhook.ValidateResilientCluster{Client: mgr.GetClient()}
+	validatingWebhook := &webhook.ValidateResilientCluster{Client: mgr.GetClient(), ServiceAccount: c.Options.ServiceAccount}
 	if err = validatingWebhook.SetupWebhookWithManager(mgr); err != nil {
 		return err
 	}

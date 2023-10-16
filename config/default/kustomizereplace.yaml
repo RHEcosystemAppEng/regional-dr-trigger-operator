@@ -22,3 +22,16 @@
         kind: ClusterManagementAddOn
       options:
         create: true
+
+# Set the service account name as an argument for the manager deployment. Used in the validation webhook.
+- source:
+    fieldPath: metadata.name
+    kind: ServiceAccount
+  targets:
+    - fieldPaths:
+        - spec.template.spec.containers.[name=manager].args.2
+      select:
+        kind: Deployment
+      options:
+        delimiter: =
+        index: 1
