@@ -10,24 +10,41 @@ import (
 	"k8s.io/client-go/rest"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/agent"
+	"open-cluster-management.io/addon-framework/pkg/utils"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	"strconv"
 )
 
-// agentValues is used to encapsulate template values for the Agent templates.
+// agentValues is used for encapsulating template values for the Agent templates.
 type agentValues struct {
 	KubeConfigSecret string
 	SpokeName        string
 	AgentNamespace   string
-	AgentReplicas    int
 	AgentImage       string
+}
+
+// deploymentValues i used for encapsulating template values extracted from the AddonDeploymentConfig.
+type deploymentValues struct {
+	AgentReplicas int
 }
 
 // createAgent is used for creating the Addon Agent configuration for the Addon Manager.
 func createAgent(ctx context.Context, kubeConfig *rest.Config, options *Options) (agent.AgentAddon, error) {
+	client, err := addonv1alpha1client.NewForConfig(kubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	getter := utils.NewAddOnDeploymentConfigGetter(client)
+
 	return addonfactory.
 		NewAgentAddonFactory(AddonName, fsys, "templates/agent").
-		WithGetValuesFuncs(getTemplateValuesFunc(options)).
+		WithConfigGVRs(utils.AddOnDeploymentConfigGVR).
+		WithGetValuesFuncs(
+			addonfactory.GetAddOnDeploymentConfigValues(getter, loadDeploymentValuesFunc),
+			getTemplateValuesFunc(options)).
 		WithAgentRegistrationOption(getRegistrationOptionFunc(ctx, kubeConfig)).
 		BuildTemplateAgentAddon()
 }
@@ -39,9 +56,25 @@ func getTemplateValuesFunc(options *Options) func(cluster *clusterv1.ManagedClus
 			KubeConfigSecret: fmt.Sprintf("%s-hub-kubeconfig", addon.Name),
 			SpokeName:        cluster.Name,
 			AgentNamespace:   addon.Spec.InstallNamespace,
-			AgentReplicas:    options.AgentReplicas,
 			AgentImage:       options.AgentImage,
 		}
+
 		return addonfactory.StructToValues(values), nil
 	}
+}
+
+// loadDeploymentValuesFunc is a function for instructing template values from an injected AddOnDeploymentConfig.
+func loadDeploymentValuesFunc(config addonv1alpha1.AddOnDeploymentConfig) (addonfactory.Values, error) {
+	values := deploymentValues{}
+	for _, variable := range config.Spec.CustomizedVariables {
+		if variable.Name == "AgentReplicas" {
+			replicas, err := strconv.Atoi(variable.Value)
+			if err != nil {
+				return nil, err
+			}
+
+			values.AgentReplicas = replicas
+		}
+	}
+	return addonfactory.StructToValues(values), nil
 }

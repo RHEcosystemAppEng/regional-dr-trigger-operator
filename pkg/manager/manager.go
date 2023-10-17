@@ -29,7 +29,6 @@ type Options struct {
 	ControllerMetricAddr     string
 	ControllerProbeAddr      string
 	ControllerLeaderElection bool
-	AgentReplicas            int
 	AgentImage               string
 	ServiceAccount           string
 }

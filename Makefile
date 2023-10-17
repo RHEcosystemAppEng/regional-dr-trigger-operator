@@ -96,7 +96,7 @@ addon/deploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Deploy the addon manager on th
 addon/undeploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon manager on the Hub cluster
 	cp config/addon/kustomization.yaml config/addon/kustomization.yaml.tmp
 	cd config/addon && $(BIN_KUSTOMIZE) edit set image manager-image=$(FULL_IMAGE_NAME)
-	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) delete -f -
+	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) delete --ignore-not-found -f -
 	mv config/addon/kustomization.yaml.tmp config/addon/kustomization.yaml
 
 addon/install: $(BIN_KUSTOMIZE) verify/tools/oc ## Install the addon agent for a spoke named in AGENT_CLUSTER_NAME on the Hub cluster
@@ -108,7 +108,7 @@ addon/install: $(BIN_KUSTOMIZE) verify/tools/oc ## Install the addon agent for a
 addon/uninstall: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon agent for a spoke named in AGENT_CLUSTER_NAME on the Hub cluster
 	cp config/samples/kustomization.yaml config/samples/kustomization.yaml.tmp
 	cd config/samples && $(BIN_KUSTOMIZE) edit set namespace $(AGENT_CLUSTER_NAME)
-	$(BIN_KUSTOMIZE) build config/samples | $(BIN_OC) delete -f -
+	$(BIN_KUSTOMIZE) build config/samples | $(BIN_OC) delete --ignore-not-found -f -
 	mv config/samples/kustomization.yaml.tmp config/samples/kustomization.yaml
 
 ###########################

@@ -29,6 +29,7 @@ type ClusterReconciler struct {
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters/finalizer,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters/status,verbs=*
+// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=addondeploymentconfigs,verbs=get;list;watch
 
 // Reconcile is watching ResilientCluster CRs, determining whether a new Spoke cluster is required, and handling
 // the cluster provisioning using OpenShift Hive API.

@@ -1,0 +1,8 @@
+- source:
+    fieldPath: metadata.name
+    kind: AddOnDeploymentConfig
+  targets:
+    - fieldPaths:
+        - spec.configs.[name=deploy-config].name
+      select:
+        kind: ManagedClusterAddOn

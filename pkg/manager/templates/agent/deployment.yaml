@@ -4,7 +4,7 @@ metadata:
   name: multicluster-resiliency-addon-agent
   namespace: {{ .AgentNamespace }}
 spec:
-  replicas: {{ .AgentReplicas }}
+  replicas: {{ or .AgentReplicas 1 }}
   selector:
     matchLabels:
       addon: multicluster-resiliency-addon-agent

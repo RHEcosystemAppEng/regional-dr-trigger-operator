@@ -5,3 +5,8 @@ metadata:
   namespace: replace-with-cluster-namespace
 spec:
   installNamespace: open-cluster-management-agent-addon
+  configs:
+    - group: addon.open-cluster-management.io
+      resource: addondeploymentconfigs
+      name: deploy-config
+      namespace: replace-with-cluster-namespace
