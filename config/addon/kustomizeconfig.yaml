@@ -2,6 +2,8 @@
 namePrefix:
   - kind: Deployment
     path: metadata/name
+  - kind: AddOnDeploymentConfig
+    path: metadata/name
 
 nameReference:
    # copy deployment name to the appropriate label
@@ -9,3 +11,7 @@ nameReference:
     fieldSpecs:
       - path: metadata/labels/app.kubernetes.io\/name
         kind: Deployment
+
+namespace:
+  - kind: ClusterManagementAddOn
+    path: spec/supportedConfigs/defaultConfig/namespace

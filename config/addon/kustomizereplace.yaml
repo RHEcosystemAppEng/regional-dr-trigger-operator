@@ -11,3 +11,12 @@
       options:
         delimiter: =
         index: 1
+
+- source:
+    fieldPath: metadata.name
+    kind: AddOnDeploymentConfig
+  targets:
+    - fieldPaths:
+        - spec.supportedConfigs.[resource=addondeploymentconfigs].defaultConfig.name
+      select:
+        kind: ClusterManagementAddOn

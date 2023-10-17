@@ -2,6 +2,7 @@
 # Do not use directly, use as part of the overall Addon deployment (start at default).
 resources:
 - deployment.yaml
+- addondeploymentconfig.yaml
 - clustermanagementaddon.yaml
 
 namePrefix: multicluster-resiliency-addon-

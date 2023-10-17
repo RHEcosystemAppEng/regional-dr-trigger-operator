@@ -1,8 +1,0 @@
-# selective injection of the name prefix
-namePrefix:
-  - kind: AddOnDeploymentConfig
-    path: metadata/name
-
-namespace:
-  - kind: ManagedClusterAddOn
-    path: spec/configs/namespace

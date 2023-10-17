@@ -10,7 +10,6 @@ var (
 	tag    = "replace-me"
 	commit = "replace-me"
 	date   = "replace-me"
-	gover  = "replace-me"
 )
 
 // Get is used for retrieving this project's version.Info.
@@ -19,6 +18,5 @@ func Get() version.Info {
 		GitVersion: tag,
 		GitCommit:  commit,
 		BuildDate:  date,
-		GoVersion:  gover,
 	}
 }
