@@ -1,5 +1,5 @@
 # This kustomize file is used for kustomizing the deployment of the Addon Manager.
-# Use the json/strategic patches for fine-tuning the Addon Manager workload.
+# Use the json/patch patches for fine-tuning the Addon Manager workload.
 # Start here for addon deployment.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -14,17 +14,12 @@ resources:
   - ../certmanager #[CERT_MANAGER]
 
 patches:
-#  - path: strategic/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
-  - path: strategic/addon_manager_probes.yaml
-  - path: strategic/addon_manager_resources.yaml
-  - path: strategic/addon_manager_security.yaml
-  - path: strategic/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
-  - path: strategic/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
-  - target:
-      kind: Deployment
-      name: manager
-      version: v1
-    path: json/manager_deployment_args.yaml # configure manager deployment arguments
+#  - path: patches/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
+  - path: patches/addon_manager_probes.yaml
+  - path: patches/addon_manager_resources.yaml
+  - path: patches/addon_manager_security.yaml
+  - path: patches/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
+  - path: patches/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
 
 replicas:
   - name: manager

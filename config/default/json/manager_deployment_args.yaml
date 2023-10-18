@@ -1,8 +1,0 @@
-# configure the manager metric address for use with the auth proxy
-- op: add
-  path: /spec/template/spec/containers/0/args/-
-  value: --controller-metric-address=127.0.0.1:8080
-# configure the manager probe address
-- op: add
-  path: /spec/template/spec/containers/0/args/-
-  value: --controller-probe-address=:8081
