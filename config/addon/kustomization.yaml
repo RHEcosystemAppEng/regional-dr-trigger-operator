@@ -1,26 +1,32 @@
 # This kustomize file is used for kustomizing the Addon Manager deployment workload.
 # Do not use directly, use as part of the overall Addon deployment (start at default).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 resources:
-- deployment.yaml
-- addondeploymentconfig.yaml
-- clustermanagementaddon.yaml
+  - deployment.yaml
+  - addondeploymentconfig.yaml
+  - clustermanagementaddon.yaml
 
 namePrefix: multicluster-resiliency-addon-
 
 configurations:
-- kustomizeconfig.yaml
+  - kustomizeconfig.yaml
 
 replacements:
-- path: kustomizereplace.yaml
+  - path: kustomizereplace.yaml
+
+components:
+  - ../components/container0_template_probes
+  - ../components/container0_template_resources
+  - ../components/container0_template_security
 
 labels:
-- includeTemplates: true
-  pairs:
-    app.kubernetes.io/component: manager-workload
+  - includeTemplates: true
+    pairs:
+      app.kubernetes.io/component: manager-workload
 
 images:
-- name: manager-image
-  newName: quay.io/ecosystem-appeng/multicluster-resiliency-addon
-  newTag: devel
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+  - name: manager-image
+    newName: manager-image
+    newTag: replace-me

@@ -15,9 +15,6 @@ resources:
 
 patches:
 #  - path: patches/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
-  - path: patches/addon_manager_probes.yaml
-  - path: patches/addon_manager_resources.yaml
-  - path: patches/addon_manager_security.yaml
   - path: patches/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
   - path: patches/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
 
