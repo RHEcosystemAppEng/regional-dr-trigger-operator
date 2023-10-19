@@ -4,13 +4,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: open-cluster-management
-
 resources:
   - ../crd
   - ../rbac
   - ../addon
   - ../metrics #[METRICS_PROXY]
+  - ../prometheus #[PROMETHEUS]
   - ../webhook #[WEBHOOK]
   - ../certmanager #[CERT_MANAGER]
 
@@ -37,3 +36,4 @@ labels:
 replacements:
   - path: kustomizereplace.yaml
   - path: kustomizereplace_certmanager.yaml #[CERT_MANAGER]
+  - path: kustomizereplace_prometheus.yaml #[PROMETHEUS]

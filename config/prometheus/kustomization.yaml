@@ -1,9 +1,11 @@
-namespace: open-cluster-management
+namespace: openshift-monitoring
 
 namePrefix: multicluster-resiliency-addon-
 
 resources:
-  - service.yaml
+  - servicemonitor.yaml
+  - role.yaml
+  - rolebinding.yaml
 
 labels:
   - pairs:

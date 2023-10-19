@@ -6,4 +6,4 @@ spec:
   ports:
     - port: 8383
       protocol: TCP
-      name: https
+      name: metrics

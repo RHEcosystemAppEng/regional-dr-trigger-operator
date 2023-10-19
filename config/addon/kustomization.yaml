@@ -1,14 +1,13 @@
 # This kustomize file is used for kustomizing the Addon Manager deployment workload.
 # Do not use directly, use as part of the overall Addon deployment (start at default).
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+namespace: open-cluster-management
+
+namePrefix: multicluster-resiliency-addon-
 
 resources:
   - deployment.yaml
   - addondeploymentconfig.yaml
   - clustermanagementaddon.yaml
-
-namePrefix: multicluster-resiliency-addon-
 
 configurations:
   - kustomizeconfig.yaml

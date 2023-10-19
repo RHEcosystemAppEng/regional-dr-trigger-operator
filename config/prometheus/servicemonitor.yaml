@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sm
+  namespace: monitoring
+spec:
+  endpoints:
+    - path: /metrics
+      port: metrics
+      scheme: https
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      tlsConfig:
+        insecureSkipVerify: true
+  namespaceSelector:
+    matchNames:
+      - replace-me
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: multicluster-resiliency-addon

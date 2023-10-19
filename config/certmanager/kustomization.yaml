@@ -1,8 +1,10 @@
+namespace: open-cluster-management
+
+namePrefix: multicluster-resiliency-addon-
+
 resources:
   - issuer.yaml
   - certificate.yaml
-
-namePrefix: multicluster-resiliency-addon-
 
 configurations:
   - kustomizeconfig.yaml
