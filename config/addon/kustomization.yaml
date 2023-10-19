@@ -16,11 +16,6 @@ configurations:
 replacements:
   - path: kustomizereplace.yaml
 
-components:
-  - ../components/container0_template_probes
-  - ../components/container0_template_resources
-  - ../components/container0_template_security
-
 labels:
   - includeTemplates: true
     pairs:

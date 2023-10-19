@@ -10,11 +10,12 @@ resources:
   - ../crd
   - ../rbac
   - ../addon
+  - ../metrics #[METRICS_PROXY]
   - ../webhook #[WEBHOOK]
   - ../certmanager #[CERT_MANAGER]
 
 patches:
-#  - path: patches/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
+  - path: patches/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
   - path: patches/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
   - path: patches/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
 

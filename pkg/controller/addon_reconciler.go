@@ -43,6 +43,7 @@ type AddonReconciler struct {
 // +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons/finalizers,verbs=update
 // +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons/status,verbs=update;patch
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 
 // Reconcile is watching ManagedClusterAddOn CRs and creating/updating/deleting the corresponding ResilientCluster CRs.
 // Note, the permissions listed here for the controller-gen are required for the Addon framework. Permissions for our
