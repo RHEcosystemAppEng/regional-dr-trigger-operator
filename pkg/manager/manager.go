@@ -31,6 +31,7 @@ type Options struct {
 	ControllerLeaderElection bool
 	AgentImage               string
 	ServiceAccount           string
+	ConfigMapName            string
 }
 
 // NewManager is used as a factory for creating a Manager instance with an Options instance.

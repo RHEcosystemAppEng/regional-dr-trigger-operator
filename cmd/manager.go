@@ -25,6 +25,7 @@ func init() {
 	mgrCmd.Flags().BoolVar(&mgr.Options.ControllerLeaderElection, "controller-leader-election", false, "TODO")
 	mgrCmd.Flags().StringVar(&mgr.Options.AgentImage, "agent-image", "", "TODO")
 	mgrCmd.Flags().StringVar(&mgr.Options.ServiceAccount, "service-account", "", "TODO")
+	mgrCmd.Flags().StringVar(&mgr.Options.ConfigMapName, "configmap_name", "", "TODO")
 
 	mcraCmd.AddCommand(mgrCmd)
 }

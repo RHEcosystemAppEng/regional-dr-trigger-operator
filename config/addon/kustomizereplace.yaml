@@ -1,4 +1,4 @@
-# Use the Addon Manager image as an argument to the manager so the same image will be used for the Addon Agent
+# use the Addon Manager image as an argument to the manager so the same image will be used for the Addon Agent
 # target text before replacement: '--agent-image=manager-image'
 - source:
     fieldPath: spec.template.spec.containers.[name=manager].image
@@ -6,6 +6,19 @@
   targets:
     - fieldPaths:
         - spec.template.spec.containers.[name=manager].args.1
+      select:
+        kind: Deployment
+      options:
+        delimiter: =
+        index: 1
+# set the config map name as an argument to deployment
+# target text before replacement: '--configmap_name=config'
+- source:
+    fieldPath: metadata.name
+    kind: ConfigMap
+  targets:
+    - fieldPaths:
+        - spec.template.spec.containers.[name=manager].args.3
       select:
         kind: Deployment
       options:

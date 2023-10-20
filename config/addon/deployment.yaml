@@ -20,6 +20,7 @@ spec:
           - manager
           - --agent-image=manager-image
           - --service-account=sa
+          - --configmap_name=config
           - --controller-leader-election
           - --controller-probe-address=:8081
           - --controller-metric-address=127.0.0.1:8080

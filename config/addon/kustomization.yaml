@@ -16,3 +16,9 @@ configurations:
   - kustomizeconfig.yaml
 replacements:
   - path: kustomizereplace.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: config
+    literals:
+      - hive_pool_name=vp-pool
