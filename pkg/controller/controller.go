@@ -29,6 +29,7 @@ type Options struct {
 	LeaderElection bool
 	ProbeAddr      string
 	ServiceAccount string
+	ConfigMapName  string
 }
 
 // NewControllerWithOptions is used as a factory for creating a Controller instance with a given Options instance.

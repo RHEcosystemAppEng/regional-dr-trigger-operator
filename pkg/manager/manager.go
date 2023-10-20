@@ -69,6 +69,7 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		ProbeAddr:      m.Options.ControllerProbeAddr,
 		LeaderElection: m.Options.ControllerLeaderElection,
 		ServiceAccount: m.Options.ServiceAccount,
+		ConfigMapName:  m.Options.ConfigMapName,
 	})
 
 	// blocking
