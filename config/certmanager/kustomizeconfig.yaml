@@ -1,4 +1,5 @@
 nameReference:
+# reference issuer name in certificate
 - kind: Issuer
   group: cert-manager.io
   fieldSpecs:

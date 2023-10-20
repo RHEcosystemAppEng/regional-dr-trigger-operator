@@ -1,26 +1,18 @@
-# This kustomize file is used for kustomizing the Addon Manager deployment workload.
-# Do not use directly, use as part of the overall Addon deployment (start at default).
 namespace: open-cluster-management
-
 namePrefix: multicluster-resiliency-addon-
-
 resources:
   - deployment.yaml
   - addondeploymentconfig.yaml
   - clustermanagementaddon.yaml
-
-configurations:
-  - kustomizeconfig.yaml
-
-replacements:
-  - path: kustomizereplace.yaml
-
 labels:
   - includeTemplates: true
     pairs:
       app.kubernetes.io/component: manager-workload
-
 images:
   - name: manager-image
     newName: manager-image
     newTag: replace-me
+configurations:
+  - kustomizeconfig.yaml
+replacements:
+  - path: kustomizereplace.yaml

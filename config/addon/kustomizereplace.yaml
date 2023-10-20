@@ -11,7 +11,7 @@
       options:
         delimiter: =
         index: 1
-
+# reference the AddOnDeploymentConfig in the ClusterManagementAddOn
 - source:
     fieldPath: metadata.name
     kind: AddOnDeploymentConfig

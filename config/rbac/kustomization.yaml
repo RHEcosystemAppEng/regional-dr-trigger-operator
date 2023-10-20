@@ -1,20 +1,9 @@
-# This kustomize file is used for kustomizing RBAC resources for the Addon Manager deployment.
-# Do not use directly, use as part of the overall Addon deployment (start at default).
 namespace: open-cluster-management
-
 namePrefix: multicluster-resiliency-addon-
-
 resources:
-  - role.yaml # generated with controller-gen
+  - role.yaml # generated with controller-gen rbac
   - serviceaccount.yaml
   - rolebinding.yaml
-
-configurations:
-  - kustomizeconfig.yaml
-
-replacements:
-  - path: kustomizereplace.yaml
-
 labels:
   - pairs:
       app.kubernetes.io/component: manager-rbac

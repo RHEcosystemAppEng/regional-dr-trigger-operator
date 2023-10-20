@@ -1,14 +1,10 @@
 namespace: open-cluster-management
-
 namePrefix: multicluster-resiliency-addon-
-
 resources:
-  - manifests.yaml
+  - manifests.yaml # generated with controller-gen webhook
   - service.yaml
-
-configurations:
-  - kustomizeconfig.yaml
-
 labels:
   - pairs:
       app.kubernetes.io/component: admission-webhook
+configurations:
+  - kustomizeconfig.yaml

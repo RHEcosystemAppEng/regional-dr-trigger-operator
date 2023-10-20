@@ -1,17 +1,11 @@
-# selective injection of the name prefix
+# selective injection of the name prefix (done to avoid injecting the ClusterManagementAddOn)
 namePrefix:
   - kind: Deployment
     path: metadata/name
   - kind: AddOnDeploymentConfig
     path: metadata/name
 
-nameReference:
-   # copy deployment name to the appropriate label
-  - kind: Deployment
-    fieldSpecs:
-      - path: metadata/labels/app.kubernetes.io\/name
-        kind: Deployment
-
 namespace:
+# set namespace for default configuration for ClusterManagementAddOn
   - kind: ClusterManagementAddOn
     path: spec/supportedConfigs/defaultConfig/namespace

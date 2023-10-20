@@ -1,17 +1,4 @@
-- source:
-    fieldPath: metadata.namespace
-    kind: Service
-    name: webhook-service
-  targets:
-    - fieldPaths:
-        - spec.dnsNames.0
-        - spec.dnsNames.1
-      select:
-        kind: Certificate
-      options:
-        delimiter: .
-        index: 1
-
+# reference the webhook service name in the certificate dns names (target is name.namespace)
 - source:
     fieldPath: metadata.name
     kind: Service
@@ -25,7 +12,21 @@
       options:
         delimiter: .
         index: 0
-
+# reference the webhook service namespace in the certificate dns names (target is name.namespace)
+- source:
+    fieldPath: metadata.namespace
+    kind: Service
+    name: webhook-service
+  targets:
+    - fieldPaths:
+        - spec.dnsNames.0
+        - spec.dnsNames.1
+      select:
+        kind: Certificate
+      options:
+        delimiter: .
+        index: 1
+# reference the certificate namespace in a crd annotation (target is namespace/name)
 - source:
     fieldPath: metadata.namespace
     kind: Certificate
@@ -45,7 +46,7 @@
       options:
         delimiter: /
         index: 0
-
+# reference the certificate name in a crd annotation (target is namespace/name)
 - source:
     fieldPath: metadata.name
     kind: Certificate

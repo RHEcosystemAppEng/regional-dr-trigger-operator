@@ -1,9 +1,7 @@
-# This kustomize file is used for kustomizing the deployment of the Addon Manager.
-# Use the json/patch patches for fine-tuning the Addon Manager workload.
-# Start here for addon deployment.
+# Look in the entire `config` repo for #[METRICS_PROXY], #[PROMETHEUS], #[WEBHOOK], and #[CERT_MANAGER] for controlling
+# specific components. (No, the Component kind won't fit better).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
   - ../crd
   - ../rbac
@@ -12,19 +10,8 @@ resources:
   - ../prometheus #[PROMETHEUS]
   - ../webhook #[WEBHOOK]
   - ../certmanager #[CERT_MANAGER]
-
-patches:
-  - path: patches/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
-  - path: patches/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
-  - path: patches/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
-
-replicas:
-  - name: manager
-    count: 1
-
 commonLabels:
   app.kubernetes.io/part-of: multicluster-resiliency-addon
-
 # this breaks for devel versions
 #buildMetadata:
 #  - managedByLabel
@@ -32,8 +19,14 @@ labels:
   - pairs:
       app.kubernetes.io/managed-by: kustomize
     includeTemplates: true
-
+replicas:
+  - name: manager
+    count: 1
 replacements:
-  - path: kustomizereplace.yaml
-  - path: kustomizereplace_certmanager.yaml #[CERT_MANAGER]
-  - path: kustomizereplace_prometheus.yaml #[PROMETHEUS]
+  - path: replacements/service_account_name_as_arg_to_deployment.yaml
+  - path: replacements/certmanager_certificate_and_webhook_injections.yaml #[CERT_MANAGER]
+  - path: replacements/prometheus_service_monitor_selection.yaml #[PROMETHEUS]
+patches:
+  - path: patches/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
+  - path: patches/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
+  - path: patches/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
