@@ -25,11 +25,12 @@ type Controller struct {
 
 // Options is used for encapsulating the various options for configuring the controller run.
 type Options struct {
-	MetricAddr     string
-	LeaderElection bool
-	ProbeAddr      string
-	ServiceAccount string
-	ConfigMapName  string
+	MetricAddr       string
+	LeaderElection   bool
+	ProbeAddr        string
+	ServiceAccount   string
+	ConfigMapName    string
+	EnableValidation bool
 }
 
 // NewControllerWithOptions is used as a factory for creating a Controller instance with a given Options instance.
@@ -77,10 +78,12 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
-	// load validation admission webhook for validating ResilientCluster crs #[WEBHOOK]
-	validatingWebhook := &webhook.ValidateResilientCluster{Client: mgr.GetClient(), ServiceAccount: c.Options.ServiceAccount}
-	if err = validatingWebhook.SetupWebhookWithManager(mgr); err != nil {
-		return err
+	if c.Options.EnableValidation {
+		// load validation admission webhook for validating ResilientCluster crs
+		validatingWebhook := &webhook.ValidateResilientCluster{Client: mgr.GetClient(), ServiceAccount: c.Options.ServiceAccount}
+		if err = validatingWebhook.SetupWebhookWithManager(mgr); err != nil {
+			return err
+		}
 	}
 
 	// configure health checks

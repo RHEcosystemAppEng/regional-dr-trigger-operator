@@ -26,6 +26,7 @@ func init() {
 	mgrCmd.Flags().StringVar(&mgr.Options.AgentImage, "agent-image", "", "TODO")
 	mgrCmd.Flags().StringVar(&mgr.Options.ServiceAccount, "service-account", "", "TODO")
 	mgrCmd.Flags().StringVar(&mgr.Options.ConfigMapName, "configmap_name", "", "TODO")
+	mgrCmd.Flags().BoolVar(&mgr.Options.EnableValidation, "enable-validation-webhook", false, "TODO")
 
 	mcraCmd.AddCommand(mgrCmd)
 }

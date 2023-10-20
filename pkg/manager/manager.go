@@ -32,6 +32,7 @@ type Options struct {
 	AgentImage               string
 	ServiceAccount           string
 	ConfigMapName            string
+	EnableValidation         bool
 }
 
 // NewManager is used as a factory for creating a Manager instance with an Options instance.
@@ -65,11 +66,12 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}()
 
 	ctrl := controller.NewControllerWithOptions(&controller.Options{
-		MetricAddr:     m.Options.ControllerMetricAddr,
-		ProbeAddr:      m.Options.ControllerProbeAddr,
-		LeaderElection: m.Options.ControllerLeaderElection,
-		ServiceAccount: m.Options.ServiceAccount,
-		ConfigMapName:  m.Options.ConfigMapName,
+		MetricAddr:       m.Options.ControllerMetricAddr,
+		ProbeAddr:        m.Options.ControllerProbeAddr,
+		LeaderElection:   m.Options.ControllerLeaderElection,
+		ServiceAccount:   m.Options.ServiceAccount,
+		ConfigMapName:    m.Options.ConfigMapName,
+		EnableValidation: m.Options.EnableValidation,
 	})
 
 	// blocking
