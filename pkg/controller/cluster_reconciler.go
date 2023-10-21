@@ -43,11 +43,10 @@ type Config struct {
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusterclaimbinding,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusterclaimbinding/finalizer,verbs=*
 // +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=addondeploymentconfigs,verbs=get;list;watch
-// +kubebuilder:rbac:groups=hive.openshift.io/v1,resources=clusterpools,verbs=get;list
-// +kubebuilder:rbac:groups=hive.openshift.io/v1,resources=clusterclaims,verbs=*
 
 // Reconcile is watching ResilientCluster CRs, determining whether a new Spoke cluster is required, and handling
-// the cluster provisioning using OpenShift Hive API.
+// the cluster provisioning using OpenShift Hive API. Note, further permissions are listed in AddonReconciler.Reconcile
+// and AddonReconciler.Reconcile.
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 

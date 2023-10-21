@@ -18,9 +18,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // AddonReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler for
@@ -47,8 +45,7 @@ type AddonReconciler struct {
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 
 // Reconcile is watching ManagedClusterAddOn CRs and creating/updating/deleting the corresponding ResilientCluster CRs.
-// Note, the permissions listed here for the controller-gen are required for the Addon framework. Permissions for our
-// own Addon are listed in ClusterReconciler.Reconcile.
+// Note, further permissions are listed in ClusterReconciler.Reconcile and ClaimReconciler.Reconcile.
 func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
@@ -142,34 +139,8 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("mcra-managed-cluster-agent-controller").
 		For(&addonv1alpha1.ManagedClusterAddOn{}).
-		WithEventFilter(verifyOwnerPredicate).
+		WithEventFilter(verifyOwnerPredicate(verifyObjectOwnerIsOurAddon)).
 		Complete(r)
-}
-
-// verifyOwnerPredicate is a predicate for verifying an object is owned by our Addon. Used to verify events.
-var verifyOwnerPredicate = predicate.Funcs{
-	CreateFunc: func(createEvent event.CreateEvent) bool {
-		return verifyObjectOwner(createEvent.Object)
-	},
-	DeleteFunc: func(deleteEvent event.DeleteEvent) bool {
-		return verifyObjectOwner(deleteEvent.Object)
-	},
-	UpdateFunc: func(updateEvent event.UpdateEvent) bool {
-		return verifyObjectOwner(updateEvent.ObjectOld) && verifyObjectOwner(updateEvent.ObjectNew)
-	},
-	GenericFunc: func(genericEvent event.GenericEvent) bool {
-		return verifyObjectOwner(genericEvent.Object)
-	},
-}
-
-// verifyObjectOwner is a utility function returning true if one of the owners for a client.Object is this Addon.
-func verifyObjectOwner(obj client.Object) bool {
-	for _, owner := range obj.GetOwnerReferences() {
-		if owner.Kind == "ClusterManagementAddOn" && owner.Name == "multicluster-resiliency-addon" {
-			return true
-		}
-	}
-	return false
 }
 
 // generateCurrentClusterStatus is used for generating a ClusterStatus from based on a ManagedClusterAddon. For future

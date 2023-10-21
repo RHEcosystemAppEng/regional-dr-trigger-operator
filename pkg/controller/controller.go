@@ -82,6 +82,12 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
+	// configure reconciler registering for hive's ClusterClaim
+	claimReconciler := &ClaimReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+	if err = claimReconciler.SetupWithManager(mgr); err != nil {
+		return err
+	}
+
 	if c.Options.EnableValidation {
 		// load validation admission webhook for validating ResilientCluster crs
 		validatingWebhook := &webhook.ValidateResilientCluster{Client: mgr.GetClient(), ServiceAccount: c.Options.ServiceAccount}
