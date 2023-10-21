@@ -82,6 +82,7 @@ generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the manifest files
 
 .PHONY: generate/code
 generate/code: $(BIN_CONTROLLER_GEN) ## Generate API boiler-plate code
+	rm -rf ./api/**/zz_generated.deepcopy.go
 	$(BIN_CONTROLLER_GEN) object:headerFile="hack/header.txt" paths="./api/..."
 
 ########################################

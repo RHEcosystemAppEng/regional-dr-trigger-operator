@@ -6,6 +6,7 @@ package controller
 
 import (
 	"context"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/webhook"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -49,6 +50,9 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 	if err := addonv1alpha1.Install(scheme); err != nil {
+		return err
+	}
+	if err := hivev1.AddToScheme(scheme); err != nil {
 		return err
 	}
 

@@ -67,6 +67,18 @@ rules:
 - apiGroups:
   - appeng.ecosystem.redhat.com
   resources:
+  - resilientclusterclaimbinding
+  verbs:
+  - '*'
+- apiGroups:
+  - appeng.ecosystem.redhat.com
+  resources:
+  - resilientclusterclaimbinding/finalizer
+  verbs:
+  - '*'
+- apiGroups:
+  - appeng.ecosystem.redhat.com
+  resources:
   - resilientclusters
   verbs:
   - '*'
@@ -74,12 +86,6 @@ rules:
   - appeng.ecosystem.redhat.com
   resources:
   - resilientclusters/finalizer
-  verbs:
-  - '*'
-- apiGroups:
-  - appeng.ecosystem.redhat.com
-  resources:
-  - resilientclusters/status
   verbs:
   - '*'
 - apiGroups:
@@ -131,6 +137,14 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - hive.openshift.io/v1
+  resources:
+  - clusterclaims
+  - clusterpools
+  verbs:
+  - get
+  - list
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:

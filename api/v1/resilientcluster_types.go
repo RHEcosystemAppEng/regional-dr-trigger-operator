@@ -1,5 +1,6 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
+// +k8s:deepcopy-gen=package
 package v1
 
 // This file hosts the API types for K8s and generation instructions for generating manifest with controller-gen.
@@ -11,7 +12,6 @@ import (
 )
 
 // +groupName=appeng.ecosystem.redhat.com
-// +k8s:deepcopy-gen=package
 
 var (
 	// groupVersion is group version used to register the objects in this file.
@@ -25,10 +25,6 @@ var (
 )
 
 type (
-	// ResilientClusterSpec defines the specification for creating a ResilientCluster.
-	ResilientClusterSpec struct {
-	}
-
 	// ClustarAvailability is a bool representing whether not the Spoke cluster is available. Use ClusterAvailable and
 	// ClusterNotAvailable.
 	ClustarAvailability string
@@ -40,11 +36,19 @@ type (
 		Time         metav1.Time         `json:"time,omitempty"`
 	}
 
+	// ClaimInfo encapsulates the info for the related ClusterClaim
+	ClaimInfo struct {
+		Name string      `json:"name,omitempty"`
+		Time metav1.Time `json:"time,omitempty"`
+	}
+
 	// ResilientClusterStatus encapsulated the initial, current, and previous statuses of the ResilientCluster.
 	ResilientClusterStatus struct {
 		InitialStatus  ClusterStatus `json:"initialStatus"`
 		CurrentStatus  ClusterStatus `json:"currentStatus"`
 		PreviousStatus ClusterStatus `json:"previousStatus,omitempty"`
+		CurrentClaim   ClaimInfo     `json:"currentClaim,omitempty"`
+		PreviousClaim  ClaimInfo     `json:"previousClaim,omitempty"`
 	}
 
 	// ResilientCluster is used by the MultiCluster-Resiliency-Addon for maintain the status and state of each cluster
@@ -54,10 +58,10 @@ type (
 	// +kubebuilder:object:root=true
 	// +kubebuilder:resource:scope=Namespaced,shortName=rstc
 	// +kubebuilder:printcolumn:name=Available,type=string,JSONPath=`.status.currentStatus.availability`
+	// +kubebuilder:printcolumn:name=Claim,type=string,JSONPath=`.status.currentClaim.name`
 	ResilientCluster struct {
 		metav1.TypeMeta   `json:",inline"`
 		metav1.ObjectMeta `json:"metadata,omitempty"`
-		Spec              ResilientClusterSpec   `json:"spec,omitempty"`
 		Status            ResilientClusterStatus `json:"status"`
 	}
 

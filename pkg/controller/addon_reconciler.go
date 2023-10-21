@@ -17,6 +17,7 @@ import (
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -116,9 +117,10 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		rc.SetName(subject.Name)
 		rc.SetNamespace(subject.Namespace)
 		rc.SetFinalizers([]string{mcraFinalizerName})
-		rc.SetOwnerReferences([]metav1.OwnerReference{
-			*metav1.NewControllerRef(mca, mca.GetObjectKind().GroupVersionKind()),
-		})
+		if err := controllerutil.SetOwnerReference(mca, rc, r.Scheme); err != nil {
+			logger.Error(err, "failed to set ManagedClusterAddon as owner on ResilientCluster")
+			return ctrl.Result{}, err
+		}
 
 		// for new instances, the current status is also the initial status
 		// new instances do not require a PreviousStatus
@@ -181,9 +183,9 @@ func generateCurrentClusterStatus(mca *addonv1alpha1.ManagedClusterAddOn) apiv1.
 	// look for an Available condition in the MCA and set RC availability accordingly
 	if meta.IsStatusConditionTrue(mca.Status.Conditions, "Available") {
 		status.Availability = apiv1.ClusterAvailable
-		metrics.ResilientSpokeAvailable.WithLabelValues(mca.Name).Inc()
+		metrics.ResilientSpokeAvailable.WithLabelValues(mca.Namespace).Inc()
 	} else {
-		metrics.ResilientSpokeNotAvailable.WithLabelValues(mca.Name).Inc()
+		metrics.ResilientSpokeNotAvailable.WithLabelValues(mca.Namespace).Inc()
 	}
 
 	return status

@@ -1,4 +1,4 @@
-namespace: openshift-monitoring
+namespace: monitoring
 namePrefix: multicluster-resiliency-addon-
 resources:
   - servicemonitor.yaml
