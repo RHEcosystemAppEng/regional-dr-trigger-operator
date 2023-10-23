@@ -36,19 +36,11 @@ type (
 		Time         metav1.Time         `json:"time,omitempty"`
 	}
 
-	// ClaimInfo encapsulates the info for the related ClusterClaim
-	ClaimInfo struct {
-		Name string      `json:"name,omitempty"`
-		Time metav1.Time `json:"time,omitempty"`
-	}
-
 	// ResilientClusterStatus encapsulated the initial, current, and previous statuses of the ResilientCluster.
 	ResilientClusterStatus struct {
 		InitialStatus  ClusterStatus `json:"initialStatus"`
 		CurrentStatus  ClusterStatus `json:"currentStatus"`
 		PreviousStatus ClusterStatus `json:"previousStatus,omitempty"`
-		CurrentClaim   ClaimInfo     `json:"currentClaim,omitempty"`
-		PreviousClaim  ClaimInfo     `json:"previousClaim,omitempty"`
 	}
 
 	// ResilientCluster is used by the MultiCluster-Resiliency-Addon for maintain the status and state of each cluster
@@ -58,7 +50,6 @@ type (
 	// +kubebuilder:object:root=true
 	// +kubebuilder:resource:scope=Namespaced,shortName=rstc
 	// +kubebuilder:printcolumn:name=Available,type=string,JSONPath=`.status.currentStatus.availability`
-	// +kubebuilder:printcolumn:name=Claim,type=string,JSONPath=`.status.currentClaim.name`
 	ResilientCluster struct {
 		metav1.TypeMeta   `json:",inline"`
 		metav1.ObjectMeta `json:"metadata,omitempty"`

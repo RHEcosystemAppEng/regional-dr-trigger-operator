@@ -8,9 +8,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-// verifyOwnerPredicate takes a function and returns a predicate that verifies event object for all events against
+// verifyObject takes a function and returns a predicate that verifies the event object for all events against
 // the function.
-func verifyOwnerPredicate(fn func(obj client.Object) bool) predicate.Funcs {
+func verifyObject(fn func(obj client.Object) bool) predicate.Funcs {
 	return predicate.Funcs{
 		CreateFunc: func(createEvent event.CreateEvent) bool {
 			return fn(createEvent.Object)
@@ -27,9 +27,9 @@ func verifyOwnerPredicate(fn func(obj client.Object) bool) predicate.Funcs {
 	}
 }
 
-// verifyObjectOwnerIsOurAddon is a utility function returning true if one of the owners for a client.Object is this
-// Addon. Use it with verifyOwnerPredicate.
-func verifyObjectOwnerIsOurAddon(obj client.Object) bool {
+// ownerIsOurAddon is a utility function returning true if one of the owners for a client.Object is this
+// Addon. Use it with verifyObject.
+func ownerIsOurAddon(obj client.Object) bool {
 	for _, owner := range obj.GetOwnerReferences() {
 		if owner.Kind == "ClusterManagementAddOn" && owner.Name == "multicluster-resiliency-addon" {
 			return true
@@ -38,13 +38,15 @@ func verifyObjectOwnerIsOurAddon(obj client.Object) bool {
 	return false
 }
 
-// objectOwnerIsAResilientCluster is a utility function returning true if one of the owners kind for a client.Object is
-// a ResilientCluster. i.e. it was created by us. Use it with verifyOwnerPredicate.
-func objectOwnerIsAResilientCluster(obj client.Object) bool {
-	for _, owner := range obj.GetOwnerReferences() {
-		if owner.Kind == "ResilientCluster" {
-			return true
+// hasAnnotation is a utility function that takes an annotation and returns a function that takes a client.Object and
+// returns true if it contains the aforementioned annotation. Use it with verifyObject.
+func hasAnnotation(annotation string) func(obj client.Object) bool {
+	return func(obj client.Object) bool {
+		for _, anno := range obj.GetAnnotations() {
+			if annotation == anno {
+				return true
+			}
 		}
+		return false
 	}
-	return false
 }

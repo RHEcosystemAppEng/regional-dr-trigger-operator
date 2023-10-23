@@ -18,6 +18,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
+const (
+	finalizerUsedByMcra      = "multicluster-resiliency-addon/mcra-finalizer"
+	annotationPreviousSpoke  = "multicluster-resiliency-addon/previous-spoke"
+	annotationFromAnnotation = "multicluster-resiliency-addon/copied-from"
+)
+
 // Controller is a receiver representing the Addon controller. It encapsulates the Controller Options which will be used
 // to configure the controller run. Use NewControllerWithOptions for instantiation.
 type Controller struct {

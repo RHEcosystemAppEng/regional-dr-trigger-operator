@@ -28,6 +28,16 @@ type AddonReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// SetupWithManager is used for setting up the controller named 'mcra-managed-cluster-agent-controller' with the manager.
+// It uses predicates as event filters for verifying only handling ManagedClusterAddon CRs for our own Addon.
+func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		Named("mcra-addon-controller").
+		For(&addonv1alpha1.ManagedClusterAddOn{}).
+		WithEventFilter(verifyObject(ownerIsOurAddon)).
+		Complete(r)
+}
+
 // +kubebuilder:rbac:groups="",resources=configmaps;events,verbs=get;list;watch;create;update;delete;deletecollection;patch
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;delete
@@ -113,7 +123,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		// ResilientCluster doesn't exist, we need to create it
 		rc.SetName(subject.Name)
 		rc.SetNamespace(subject.Namespace)
-		rc.SetFinalizers([]string{mcraFinalizerName})
+		rc.SetFinalizers([]string{finalizerUsedByMcra})
 		if err := controllerutil.SetOwnerReference(mca, rc, r.Scheme); err != nil {
 			logger.Error(err, "failed to set ManagedClusterAddon as owner on ResilientCluster")
 			return ctrl.Result{}, err
@@ -131,16 +141,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// SetupWithManager is used for setting up the controller named 'mcra-managed-cluster-agent-controller' with the manager.
-// It uses predicates as event filters for verifying only handling ManagedClusterAddon CRs for our own Addon.
-func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		Named("mcra-managed-cluster-agent-controller").
-		For(&addonv1alpha1.ManagedClusterAddOn{}).
-		WithEventFilter(verifyOwnerPredicate(verifyObjectOwnerIsOurAddon)).
-		Complete(r)
 }
 
 // generateCurrentClusterStatus is used for generating a ClusterStatus from based on a ManagedClusterAddon. For future

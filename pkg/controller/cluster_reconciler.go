@@ -11,8 +11,6 @@ import (
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -22,9 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
-
-const mcraFinalizerName = "multicluster-resiliency-addon/finalizer"
-const mcraClaimReplacingAnnotation = "multicluster-resiliency-addon/replacing-claim"
 
 // ClusterReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler for
 // ResilientCluster CRs.
@@ -38,11 +33,20 @@ type Config struct {
 	HivePoolName string
 }
 
+// SetupWithManager is used for setting up the controller named 'mcra-managed-cluster-cluster-controller' with the
+// manager.
+func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		Named("mcra-cluster-controller").
+		For(&apiv1.ResilientCluster{}).
+		Complete(r)
+}
+
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusters/finalizer,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusterclaimbinding,verbs=*
 // +kubebuilder:rbac:groups=appeng.ecosystem.redhat.com,resources=resilientclusterclaimbinding/finalizer,verbs=*
-// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=addondeploymentconfigs,verbs=get;list;watch
+// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=addondeploymentconfigs,verbs=*
 
 // Reconcile is watching ResilientCluster CRs, determining whether a new Spoke cluster is required, and handling
 // the cluster provisioning using OpenShift Hive API. Note, further permissions are listed in AddonReconciler.Reconcile
@@ -70,11 +74,11 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// deletion cleanup
 	if !rc.DeletionTimestamp.IsZero() {
 		// ResilientCluster is in delete process
-		if controllerutil.ContainsFinalizer(rc, mcraFinalizerName) {
+		if controllerutil.ContainsFinalizer(rc, finalizerUsedByMcra) {
 			// TODO add cleanup code here
 
 			// when cleanup done, remove the finalizer
-			controllerutil.RemoveFinalizer(rc, mcraFinalizerName)
+			controllerutil.RemoveFinalizer(rc, finalizerUsedByMcra)
 			if err := r.Client.Update(ctx, rc); err != nil {
 				logger.Error(err, fmt.Sprintf("%s failed removing finalizer", subject.String()))
 				return ctrl.Result{}, err
@@ -113,41 +117,15 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	newClaim := &hivev1.ClusterClaim{}
 	newClaim.SetName(claimName)
 	newClaim.SetNamespace(config.HivePoolName)
-	newClaim.SetOwnerReferences([]v1.OwnerReference{*v1.GetControllerOf(rc)})
-	controllerutil.AddFinalizer(newClaim, mcraFinalizerName)
-	// if the new claim replaces an existing one, annotate the new claim
-	// this will later be used to delete the old claim
-	claimInfo := apiv1.ClaimInfo{}
-	if rc.Status.CurrentClaim != claimInfo {
-		newClaim.SetAnnotations(map[string]string{mcraClaimReplacingAnnotation: rc.Status.CurrentClaim.Name})
-	}
+	controllerutil.AddFinalizer(newClaim, finalizerUsedByMcra)
+	newClaim.SetAnnotations(map[string]string{annotationPreviousSpoke: rc.Name})
 
 	if err = r.Client.Create(ctx, newClaim); err != nil {
 		logger.Error(err, "failed creating ClusterClaim")
 		return ctrl.Result{}, err
 	}
 
-	// update ResilientCusterStatus with info of new claim
-	claimInfo.Name = claimName
-	claimInfo.Time = metav1.Now()
-	rc.Status.PreviousClaim = rc.Status.CurrentClaim
-	rc.Status.CurrentClaim = claimInfo
-
-	if err = r.Client.Update(ctx, rc); err != nil {
-		logger.Error(err, "failed to update ResilientCluster with ClusterClaim info")
-		return ctrl.Result{}, err
-	}
-
 	return ctrl.Result{}, nil
-}
-
-// SetupWithManager is used for setting up the controller named 'mcra-managed-cluster-cluster-controller' with the
-// manager.
-func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		Named("mcra-managed-cluster-cluster-controller").
-		For(&apiv1.ResilientCluster{}).
-		Complete(r)
 }
 
 // loadConfiguration will first attempt to load the configmap from the cluster-namespace, if failed, will load the one
@@ -197,9 +175,11 @@ func (r *ClusterReconciler) loadClusterPool(ctx context.Context, poolName string
 // requiresNewClaim takes an apiv1.ResilientCluster and determines whether a new cluster claim is required. i.e. If the
 // cluster is not available, a new claim is required. Currently, the decision is made based on the availability status,
 // for future steps we can make this more robust. For instance, check the time of the previous status change and only
-// required a new claim if x time has passed, allowing the cluster a change to recuperate.
+// require a new claim if x time has passed, allowing the cluster a change to recuperate.
 func requiresNewClaim(rc *apiv1.ResilientCluster) bool {
-	return rc.Status.CurrentStatus.Availability != apiv1.ClusterAvailable
+	return rc.Status.CurrentStatus.Availability != apiv1.ClusterAvailable &&
+		rc.Status.CurrentStatus != rc.Status.PreviousStatus &&
+		rc.Status.CurrentStatus != rc.Status.InitialStatus
 }
 
 // configMapToConfig is used to extract known keys from a ConfigMap and build a new Config from the extracted values.

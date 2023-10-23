@@ -138,9 +138,23 @@ rules:
   - update
   - watch
 - apiGroups:
-  - hive.openshift.io/v1
+  - hive.openshift.io
   resources:
   - clusterclaims
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
+  - hive.openshift.io
+  resources:
+  - clusterdeployments
+  verbs:
+  - '*'
+- apiGroups:
+  - hive.openshift.io
+  resources:
   - clusterpools
   verbs:
   - get

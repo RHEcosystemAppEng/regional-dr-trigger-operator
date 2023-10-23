@@ -20,9 +20,6 @@ spec:
     - jsonPath: .status.currentStatus.availability
       name: Available
       type: string
-    - jsonPath: .status.currentClaim.name
-      name: Claim
-      type: string
     name: v1
     schema:
       openAPIV3Schema:
@@ -47,15 +44,6 @@ spec:
             description: ResilientClusterStatus encapsulated the initial, current,
               and previous statuses of the ResilientCluster.
             properties:
-              currentClaim:
-                description: ClaimInfo encapsulates the info for the related ClusterClaim
-                properties:
-                  name:
-                    type: string
-                  time:
-                    format: date-time
-                    type: string
-                type: object
               currentStatus:
                 description: ClusterStatus represents a status of the Spoke cluster
                   at a specific time.
@@ -83,15 +71,6 @@ spec:
                     enum:
                     - "True"
                     - "False"
-                    type: string
-                  time:
-                    format: date-time
-                    type: string
-                type: object
-              previousClaim:
-                description: ClaimInfo encapsulates the info for the related ClusterClaim
-                properties:
-                  name:
                     type: string
                   time:
                     format: date-time
