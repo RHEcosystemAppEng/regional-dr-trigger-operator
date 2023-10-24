@@ -117,7 +117,6 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	newClaim := &hivev1.ClusterClaim{}
 	newClaim.SetName(claimName)
 	newClaim.SetNamespace(config.HivePoolName)
-	controllerutil.AddFinalizer(newClaim, finalizerUsedByMcra)
 	newClaim.SetAnnotations(map[string]string{annotationPreviousSpoke: rc.Name})
 
 	if err = r.Client.Create(ctx, newClaim); err != nil {
