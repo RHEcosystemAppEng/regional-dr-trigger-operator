@@ -23,9 +23,7 @@ rules:
   resources:
   - addondeploymentconfigs
   verbs:
-  - get
-  - list
-  - watch
+  - '*'
 - apiGroups:
   - addon.open-cluster-management.io
   resources:
@@ -151,7 +149,10 @@ rules:
   resources:
   - clusterdeployments
   verbs:
-  - '*'
+  - create
+  - delete
+  - get
+  - list
 - apiGroups:
   - hive.openshift.io
   resources:
