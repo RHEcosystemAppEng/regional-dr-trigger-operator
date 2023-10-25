@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
-package controller
+package controllers
 
 // This file hosts our ClusterReconciler implementation registering for our ResilientCluster CRs.
 
@@ -9,6 +9,7 @@ import (
 	"fmt"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,11 +75,11 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// deletion cleanup
 	if !rc.DeletionTimestamp.IsZero() {
 		// ResilientCluster is in delete process
-		if controllerutil.ContainsFinalizer(rc, finalizerUsedByMcra) {
+		if controllerutil.ContainsFinalizer(rc, mcra.FinalizerUsedByMcra) {
 			// TODO add cleanup code here
 
 			// when cleanup done, remove the finalizer
-			controllerutil.RemoveFinalizer(rc, finalizerUsedByMcra)
+			controllerutil.RemoveFinalizer(rc, mcra.FinalizerUsedByMcra)
 			if err := r.Client.Update(ctx, rc); err != nil {
 				logger.Error(err, fmt.Sprintf("%s failed removing finalizer", subject.String()))
 				return ctrl.Result{}, err
@@ -117,7 +118,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	newClaim := &hivev1.ClusterClaim{}
 	newClaim.SetName(claimName)
 	newClaim.SetNamespace(config.HivePoolName)
-	newClaim.SetAnnotations(map[string]string{annotationPreviousSpoke: rc.Name})
+	newClaim.SetAnnotations(map[string]string{mcra.AnnotationPreviousSpoke: rc.Name})
 
 	if err = r.Client.Create(ctx, newClaim); err != nil {
 		logger.Error(err, "failed creating ClusterClaim")

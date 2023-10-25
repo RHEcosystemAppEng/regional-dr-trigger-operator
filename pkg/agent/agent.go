@@ -6,7 +6,7 @@ package agent
 
 import (
 	"context"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/manager"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -45,7 +45,7 @@ func (a *Agent) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	leaseUpdater := lease.
-		NewLeaseUpdater(spokeClientSet, manager.AddonName, a.Options.AgentNamespace).
+		NewLeaseUpdater(spokeClientSet, mcra.AddonName, a.Options.AgentNamespace).
 		WithHubLeaseConfig(hubConfig, a.Options.SpokeName)
 
 	go func() {

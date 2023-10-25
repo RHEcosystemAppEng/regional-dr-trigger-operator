@@ -41,7 +41,7 @@ BIN_OC ?= oc##@ Set a custom 'oc' binary path if not in PATH
 ###############################
 ###### Various variables ######
 ###############################
-AGENT_CLUSTER_NAME ?= cluster1##@ Set the name of the Spoke to install the addon manager in, defaults to 'cluster1'
+SPOKE_NAME ?= vp-blue##@ Set the name of the Spoke to install the addon manager in, defaults to 'cluster1'
 COVERAGE_THRESHOLD ?= 60##@ Set the unit test code coverage threshold, defaults to '60'
 
 #########################
@@ -76,9 +76,9 @@ generate/all: generate/manifests generate/code ## Generate both the code and the
 
 .PHONY: generate/manifests
 generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the manifest files
-	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controller/..."
+	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controllers/..."
 	$(BIN_CONTROLLER_GEN) crd paths="./api/..."
-	$(BIN_CONTROLLER_GEN) webhook paths="./pkg/webhook/..."
+	$(BIN_CONTROLLER_GEN) webhook paths="./pkg/webhooks/..."
 
 .PHONY: generate/code
 generate/code: $(BIN_CONTROLLER_GEN) ## Generate API boiler-plate code
@@ -100,15 +100,15 @@ addon/undeploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon manager on 
 	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) delete --ignore-not-found -f -
 	mv config/addon/kustomization.yaml.tmp config/addon/kustomization.yaml
 
-addon/install: $(BIN_KUSTOMIZE) verify/tools/oc ## Install the addon agent for a spoke named in AGENT_CLUSTER_NAME on the Hub cluster
+addon/install: $(BIN_KUSTOMIZE) verify/tools/oc ## Install the addon agent for a spoke named in SPOKE_NAME on the Hub cluster
 	cp config/samples/kustomization.yaml config/samples/kustomization.yaml.tmp
-	cd config/samples && $(BIN_KUSTOMIZE) edit set namespace $(AGENT_CLUSTER_NAME)
+	cd config/samples && $(BIN_KUSTOMIZE) edit set namespace $(SPOKE_NAME)
 	$(BIN_KUSTOMIZE) build config/samples | $(BIN_OC) apply -f -
 	mv config/samples/kustomization.yaml.tmp config/samples/kustomization.yaml
 
-addon/uninstall: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon agent for a spoke named in AGENT_CLUSTER_NAME on the Hub cluster
+addon/uninstall: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon agent for a spoke named in SPOKE_NAME on the Hub cluster
 	cp config/samples/kustomization.yaml config/samples/kustomization.yaml.tmp
-	cd config/samples && $(BIN_KUSTOMIZE) edit set namespace $(AGENT_CLUSTER_NAME)
+	cd config/samples && $(BIN_KUSTOMIZE) edit set namespace $(SPOKE_NAME)
 	$(BIN_KUSTOMIZE) build config/samples | $(BIN_OC) delete --ignore-not-found -f -
 	mv config/samples/kustomization.yaml.tmp config/samples/kustomization.yaml
 

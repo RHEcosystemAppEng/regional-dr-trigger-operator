@@ -7,13 +7,11 @@ package manager
 import (
 	"context"
 	"embed"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/controller"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/controllers"
 	"k8s.io/client-go/rest"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
-
-const AddonName = "multicluster-resiliency-addon"
 
 //go:embed templates/agent templates/rbac
 var fsys embed.FS
@@ -65,7 +63,7 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		}
 	}()
 
-	ctrl := controller.NewControllerWithOptions(&controller.Options{
+	ctrl := controllers.NewControllerWithOptions(&controllers.Options{
 		MetricAddr:       m.Options.ControllerMetricAddr,
 		ProbeAddr:        m.Options.ControllerProbeAddr,
 		LeaderElection:   m.Options.ControllerLeaderElection,

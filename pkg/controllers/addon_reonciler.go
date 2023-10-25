@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
-package controller
+package controllers
 
 // This file hosts our AddonReconciler implementation registering for the framework's ManagedClusterAddOn CRs.
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/metrics"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -34,7 +35,7 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("mcra-addon-controller").
 		For(&addonv1alpha1.ManagedClusterAddOn{}).
-		WithEventFilter(verifyObject(ownerIsOurAddon)).
+		WithEventFilter(verifyObject(ownerName(mcra.AddonName))).
 		Complete(r)
 }
 
@@ -123,7 +124,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		// ResilientCluster doesn't exist, we need to create it
 		rc.SetName(subject.Name)
 		rc.SetNamespace(subject.Namespace)
-		rc.SetFinalizers([]string{finalizerUsedByMcra})
+		rc.SetFinalizers([]string{mcra.FinalizerUsedByMcra})
 		if err := controllerutil.SetOwnerReference(mca, rc, r.Scheme); err != nil {
 			logger.Error(err, "failed to set ManagedClusterAddon as owner on ResilientCluster")
 			return ctrl.Result{}, err

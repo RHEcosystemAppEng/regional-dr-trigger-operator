@@ -7,6 +7,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
 	"k8s.io/client-go/rest"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/agent"
@@ -40,7 +41,7 @@ func createAgent(ctx context.Context, kubeConfig *rest.Config, options *Options)
 	getter := utils.NewAddOnDeploymentConfigGetter(client)
 
 	return addonfactory.
-		NewAgentAddonFactory(AddonName, fsys, "templates/agent").
+		NewAgentAddonFactory(mcra.AddonName, fsys, "templates/agent").
 		WithConfigGVRs(utils.AddOnDeploymentConfigGVR).
 		WithGetValuesFuncs(
 			addonfactory.GetAddOnDeploymentConfigValues(getter, loadDeploymentValuesFunc),

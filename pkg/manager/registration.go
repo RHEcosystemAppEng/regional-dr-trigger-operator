@@ -7,6 +7,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +29,7 @@ import (
 func getRegistrationOptionFunc(ctx context.Context, kubeConfig *rest.Config) *agent.RegistrationOption {
 	agentName := rand.String(5)
 	return &agent.RegistrationOption{
-		CSRConfigurations: agent.KubeClientSignerConfigurations(AddonName, agentName),
+		CSRConfigurations: agent.KubeClientSignerConfigurations(mcra.AddonName, agentName),
 		CSRApproveCheck:   utils.DefaultCSRApprover(agentName), // this is the default auto-approving, consider replacing
 		PermissionConfig:  getPermissionConfig(ctx, kubeConfig),
 	}

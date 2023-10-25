@@ -15,7 +15,8 @@ spec:
       containers:
       - name: manager
         image: manager-image
-        imagePullPolicy: IfNotPresent
+        # TODO change to IfNotPresent
+        imagePullPolicy: Always
         args:
           - manager
           - --agent-image=manager-image

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
-package controller
+package controllers
 
 // This file hosts functions and types for instantiating the controller as part of the Addon Manager on the Hub cluster.
 
@@ -8,7 +8,8 @@ import (
 	"context"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/webhook"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/webhooks"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
@@ -16,12 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
-)
-
-const (
-	finalizerUsedByMcra      = "multicluster-resiliency-addon/mcra-finalizer"
-	annotationPreviousSpoke  = "multicluster-resiliency-addon/previous-spoke"
-	annotationFromAnnotation = "multicluster-resiliency-addon/copied-from"
 )
 
 // Controller is a receiver representing the Addon controller. It encapsulates the Controller Options which will be used
@@ -61,6 +56,9 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	if err := hivev1.AddToScheme(scheme); err != nil {
 		return err
 	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		return err
+	}
 
 	// create a manager for our controller
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
@@ -83,7 +81,7 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	// configure reconciler registering for our own ResilientCluster
-	clusterReconciler := &ClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+	clusterReconciler := &ClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), ConfigMapName: c.Options.ConfigMapName}
 	if err = clusterReconciler.SetupWithManager(mgr); err != nil {
 		return err
 	}
@@ -96,7 +94,7 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 
 	if c.Options.EnableValidation {
 		// load validation admission webhook for validating ResilientCluster crs
-		validatingWebhook := &webhook.ValidateResilientCluster{Client: mgr.GetClient(), ServiceAccount: c.Options.ServiceAccount}
+		validatingWebhook := &webhooks.ValidateResilientCluster{Client: mgr.GetClient(), ServiceAccount: c.Options.ServiceAccount}
 		if err = validatingWebhook.SetupWebhookWithManager(mgr); err != nil {
 			return err
 		}

@@ -17,7 +17,8 @@ spec:
       containers:
         - name: multicluster-resiliency-addon-agent
           image: {{ .AgentImage }}
-          imagePullPolicy: IfNotPresent
+          # TODO change to IfNotPresent
+          imagePullPolicy: Always
           args:
             - agent
             - --spoke-name={{ .SpokeName }}

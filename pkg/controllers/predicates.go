@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
-package controller
+package controllers
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,15 +27,17 @@ func verifyObject(fn func(obj client.Object) bool) predicate.Funcs {
 	}
 }
 
-// ownerIsOurAddon is a utility function returning true if one of the owners for a client.Object is this
-// Addon. Use it with verifyObject.
-func ownerIsOurAddon(obj client.Object) bool {
-	for _, owner := range obj.GetOwnerReferences() {
-		if owner.Kind == "ClusterManagementAddOn" && owner.Name == "multicluster-resiliency-addon" {
-			return true
+// ownerName is a utility function that takes a name and returns a function that returns true if one of the owners
+// for a client.Object has the aforementioned name.
+func ownerName(name string) func(obj client.Object) bool {
+	return func(obj client.Object) bool {
+		for _, owner := range obj.GetOwnerReferences() {
+			if owner.Name == name {
+				return true
+			}
 		}
+		return false
 	}
-	return false
 }
 
 // hasAnnotation is a utility function that takes an annotation and returns a function that takes a client.Object and
