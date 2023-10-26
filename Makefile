@@ -76,9 +76,9 @@ generate/all: generate/manifests generate/code ## Generate both the code and the
 
 .PHONY: generate/manifests
 generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the manifest files
-	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controllers/..."
+	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controllers/reconcilers/..."
 	$(BIN_CONTROLLER_GEN) crd paths="./api/..."
-	$(BIN_CONTROLLER_GEN) webhook paths="./pkg/webhooks/..."
+	$(BIN_CONTROLLER_GEN) webhook paths="./pkg/controllers/webhooks/..."
 
 .PHONY: generate/code
 generate/code: $(BIN_CONTROLLER_GEN) ## Generate API boiler-plate code
@@ -205,7 +205,7 @@ $(BIN_ACTIONLINT): # recommendation: manually install shellcheck and verify it's
 ###### Verify tools availablity ######
 ######################################
 
-# member 1 is the missing tool name, member 2 is the name of the variable used to customize the tool path
+# member 1 is the missing tool name, member 2 is the name of the variable used for customizing the tool path
 TOOL_MISSING_ERR_MSG = Please install '$(1)' or specify a custom path using the '$(2)' variable
 
 .PHONY: verify/tools/awk

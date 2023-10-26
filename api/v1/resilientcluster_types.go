@@ -14,10 +14,10 @@ import (
 // +groupName=appeng.ecosystem.redhat.com
 
 var (
-	// groupVersion is group version used to register the objects in this file.
+	// groupVersion is group version used for registering the objects in this file.
 	groupVersion = schema.GroupVersion{Group: "appeng.ecosystem.redhat.com", Version: "v1"}
 
-	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
+	// schemeBuilder is used for adding go types to the GroupVersionKind scheme.
 	schemeBuilder = &scheme.Builder{GroupVersion: groupVersion}
 
 	// Install adds the types in this group-version to the given scheme.
@@ -71,7 +71,7 @@ const (
 	ClusterNotAvailable ClustarAvailability = "False"
 )
 
-// init is used to register the Addon API types with the scheme previously configured with groupVersion.
+// init is used for registering the Addon API types with the scheme previously configured with groupVersion.
 func init() {
 	schemeBuilder.Register(&ResilientCluster{}, &ResilientClusterList{})
 }

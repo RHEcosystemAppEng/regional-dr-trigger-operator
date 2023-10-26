@@ -121,8 +121,11 @@ rules:
   resources:
   - managedclusters
   verbs:
+  - create
+  - delete
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - coordination.k8s.io

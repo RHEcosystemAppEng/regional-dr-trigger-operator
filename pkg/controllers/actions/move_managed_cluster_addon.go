@@ -2,6 +2,8 @@
 
 package actions
 
+// This file contains the action for moving the ManagedClusterAddon between spokes.
+
 import (
 	"context"
 	"fmt"
@@ -11,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// moveManagedClusterAddon is used for moving the ManagedClusterAddon from the OLD spoke to the NEW one.
 func moveManagedClusterAddon(ctx context.Context, options Options) {
 	logger := log.FromContext(ctx)
 
@@ -25,6 +28,7 @@ func moveManagedClusterAddon(ctx context.Context, options Options) {
 	if err := options.Client.Get(ctx, oldMcaSubject, oldMca); err != nil {
 		logger.Error(err, fmt.Sprintf("failed fetching ManagedClusterAddon %s", oldMcaSubject))
 	} else {
+		// create new ManagedClusterAddon for the NEW spoke and delete the OLD one
 		newMca := oldMca.DeepCopy()
 
 		newMca.SetName(mcra.AddonName)
@@ -49,6 +53,7 @@ func moveManagedClusterAddon(ctx context.Context, options Options) {
 	}
 }
 
+// init is registering moveManagedClusterAddon for running.
 func init() {
 	actionFuncs = append(actionFuncs, moveManagedClusterAddon)
 }

@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
-package controllers
+package reconcilers
 
 // This file hosts our AddonReconciler implementation registering for the framework's ManagedClusterAddOn CRs.
 
@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // AddonReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler for
@@ -29,9 +30,9 @@ type AddonReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// SetupWithManager is used for setting up the controller named 'mcra-managed-cluster-agent-controller' with the manager.
+// setupWithManager is used for setting up the controller named 'mcra-managed-cluster-agent-controller' with the manager.
 // It uses predicates as event filters for verifying only handling ManagedClusterAddon CRs for our own Addon.
-func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *AddonReconciler) setupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("mcra-addon-controller").
 		For(&addonv1alpha1.ManagedClusterAddOn{}).
@@ -161,4 +162,11 @@ func generateCurrentClusterStatus(mca *addonv1alpha1.ManagedClusterAddOn) apiv1.
 	}
 
 	return status
+}
+
+// init is registering the AddonReconciler setup function for execution.
+func init() {
+	reconcilerFuncs = append(reconcilerFuncs, func(mgr manager.Manager, options Options) error {
+		return (&AddonReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}).setupWithManager(mgr)
+	})
 }

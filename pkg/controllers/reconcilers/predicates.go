@@ -1,6 +1,8 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
-package controllers
+package reconcilers
+
+// This file contains predicates related functions for use as filters for controllers.
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/client"

@@ -13,7 +13,7 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/lease"
 )
 
-// Agent is a receiver representing the Addon agent. It encapsulates the Agent Options used to configure the agent run.
+// Agent is a receiver representing the Addon agent. It encapsulates the Agent Options used for configuring the agent run.
 // Use NewAgent for instantiation.
 type Agent struct {
 	Options *Options

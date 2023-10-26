@@ -2,6 +2,8 @@
 
 package actions
 
+// This file contains the action for moving AddonDeploymentConfigs between spokes.
+
 import (
 	"context"
 	"fmt"
@@ -10,6 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// moveAddonDeploymentConfigs is used for moving all AddonDeploymentConfig resources found from the OLD spoke namespace
+// to the NEW one, and delete the old ones.
 func moveAddonDeploymentConfigs(ctx context.Context, options Options) {
 	logger := log.FromContext(ctx)
 
@@ -18,6 +22,7 @@ func moveAddonDeploymentConfigs(ctx context.Context, options Options) {
 	if err := options.Client.List(ctx, oldConfigs, &client.ListOptions{Namespace: options.OldSpoke}); err != nil {
 		logger.Info(fmt.Sprintf("no AddOnDeploymentConfigs found on %s", options.OldSpoke))
 	} else {
+		// iterate over all found configs, create new ones for the NEW spoke, and delete the OLD ones
 		for _, oldConfig := range oldConfigs.Items {
 			newConfig := oldConfig.DeepCopy()
 			newConfig.SetName(oldConfig.Name)
@@ -32,6 +37,7 @@ func moveAddonDeploymentConfigs(ctx context.Context, options Options) {
 	}
 }
 
+// init is registering moveAddonDeploymentConfigs for running.
 func init() {
 	actionFuncs = append(actionFuncs, moveAddonDeploymentConfigs)
 }

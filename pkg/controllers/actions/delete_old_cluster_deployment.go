@@ -2,6 +2,8 @@
 
 package actions
 
+// This file contains the action for deleting a ClusterDeployment from the OLD spoke.
+
 import (
 	"context"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// deleteOldClusterDeployment is used for deleting Hive's ClusterDeployment from the OLD spoke.
 func deleteOldClusterDeployment(ctx context.Context, options Options) {
 	logger := log.FromContext(ctx)
 
@@ -30,6 +33,7 @@ func deleteOldClusterDeployment(ctx context.Context, options Options) {
 	}
 }
 
+// init is registering deleteOldClusterDeployment for running.
 func init() {
 	actionFuncs = append(actionFuncs, deleteOldClusterDeployment)
 }

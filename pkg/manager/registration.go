@@ -20,10 +20,10 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
-// getRegistrationOptionFunc is used to create a function for creating a registry option for configuring the addon automated
-// registration process. In runtime, when the addon is enabled on a Spoke, this will create a role and a binding on the
-// Spoke's cluster-namespace on the Hub. This will allow the Spoke's Agent to access resource in its own namespace on
-// the Hub.
+// getRegistrationOptionFunc is used for creating a function for creating a registry option for configuring the addon
+// automated registration process. In runtime, when the addon is enabled on a Spoke, this will create a role and a
+// binding on the Spoke's cluster-namespace on the Hub. This will allow the Spoke's Agent to access resource in its own
+// namespace on the Hub.
 // The kubeConfig if for the Hub's kubeconfig.
 // Use the 'getPermissionConfig' function to modify the required resources.
 func getRegistrationOptionFunc(ctx context.Context, kubeConfig *rest.Config) *agent.RegistrationOption {

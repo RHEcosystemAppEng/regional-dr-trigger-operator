@@ -1,6 +1,6 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
-package controllers
+package reconcilers
 
 // This file hosts our ClusterReconciler implementation registering for our ResilientCluster CRs.
 
@@ -10,6 +10,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,23 +21,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // ClusterReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler for
 // ResilientCluster CRs.
 type ClusterReconciler struct {
 	client.Client
-	Scheme        *runtime.Scheme
-	ConfigMapName string
+	Scheme *runtime.Scheme
+	Options
 }
 
 type Config struct {
 	HivePoolName string
 }
 
-// SetupWithManager is used for setting up the controller named 'mcra-managed-cluster-cluster-controller' with the
+// setupWithManager is used for setting up the controller named 'mcra-managed-cluster-cluster-controller' with the
 // manager.
-func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ClusterReconciler) setupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("mcra-cluster-controller").
 		For(&apiv1.ResilientCluster{}).
@@ -125,6 +127,9 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	// the namespace is the name of the old spoke
+	metrics.NewClusterClaimCreated.WithLabelValues(config.HivePoolName, claimName, req.Namespace).Inc()
+
 	return ctrl.Result{}, nil
 }
 
@@ -160,7 +165,7 @@ func (r *ClusterReconciler) loadConfiguration(ctx context.Context, clusterNamesp
 	return configMapToConfig(cmap), nil
 }
 
-// loadClusterPool is used to load a ClusterPool, the assumption is that the ClusterPool name and namespace are
+// loadClusterPool is used for loading a ClusterPool, the assumption is that the ClusterPool name and namespace are
 // identical.
 func (r *ClusterReconciler) loadClusterPool(ctx context.Context, poolName string) (*hivev1.ClusterPool, error) {
 	subject := types.NamespacedName{
@@ -182,7 +187,7 @@ func requiresNewClaim(rc *apiv1.ResilientCluster) bool {
 		rc.Status.CurrentStatus != rc.Status.InitialStatus
 }
 
-// configMapToConfig is used to extract known keys from a ConfigMap and build a new Config from the extracted values.
+// configMapToConfig is used for extracting known keys from a ConfigMap and build a new Config from the extracted values.
 // currently we're only working with `hive_pool_name`, but this is where we can add more configuration values.
 func configMapToConfig(configMap *corev1.ConfigMap) Config {
 	config := Config{}
@@ -193,11 +198,18 @@ func configMapToConfig(configMap *corev1.ConfigMap) Config {
 	return config
 }
 
-// verifyPool is used to verify a hivev1.ClusterPool is ok and a ClusterClaim can be made. Initial implementation is
+// verifyPool is used for verifying a hivev1.ClusterPool is ok and a ClusterClaim can be made. Initial implementation is
 // based on pool's ready status. Further verifications, i.e. checking condition statuses, can be added here.
 func verifyPool(pool *hivev1.ClusterPool) error {
 	if pool.Status.Ready > 0 {
 		return nil
 	}
 	return fmt.Errorf("cluster pool is not ready for claims")
+}
+
+// init is registering the ClusterReconciler setup function for execution.
+func init() {
+	reconcilerFuncs = append(reconcilerFuncs, func(mgr manager.Manager, options Options) error {
+		return (&ClusterReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Options: options}).setupWithManager(mgr)
+	})
 }

@@ -50,7 +50,7 @@ func createAgent(ctx context.Context, kubeConfig *rest.Config, options *Options)
 		BuildTemplateAgentAddon()
 }
 
-// getTemplateValuesFunc is used to build a function for generating values to be used in the Addon Agent templates.
+// getTemplateValuesFunc is used for building a function for generating values to be used in the Addon Agent templates.
 func getTemplateValuesFunc(options *Options) func(cluster *clusterv1.ManagedCluster, addon *addonv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
 	return func(cluster *clusterv1.ManagedCluster, addon *addonv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
 		values := agentValues{

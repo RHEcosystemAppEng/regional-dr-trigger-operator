@@ -6,6 +6,7 @@ package version
 
 import "k8s.io/apimachinery/pkg/version"
 
+// these are updated in build-time using LDFlags, note the Makefile
 var (
 	tag    = "replace-me"
 	commit = "replace-me"

@@ -1,4 +1,8 @@
+// Copyright (c) 2023 Red Hat, Inc.
+
 package webhooks
+
+// This file hosts types and functions for the ResilientCluster validation admission webhook.
 
 import (
 	"context"
@@ -20,6 +24,7 @@ type ValidateResilientCluster struct {
 	ServiceAccount string
 }
 
+// SetupWebhookWithManager is used for setup of the validating admission webhook with a controller manager.
 func (v *ValidateResilientCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).For(&v1.ResilientCluster{}).WithValidator(v).Complete()
 }
@@ -39,6 +44,7 @@ func (v *ValidateResilientCluster) ValidateDelete(ctx context.Context, obj runti
 	return nil, v.verifyUser(ctx)
 }
 
+// verifyUser is used for verifying the operation requesting user is our own ServiceAccount.
 func (v *ValidateResilientCluster) verifyUser(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	request, err := admission.RequestFromContext(ctx)
@@ -57,6 +63,7 @@ func (v *ValidateResilientCluster) verifyUser(ctx context.Context) error {
 	return errors.New("user not allowed to control ResilientCluster")
 }
 
+// verifyOnlyOneInNamespace is used for verifying we don't already have a ResilientCluster resource in the target namespace.
 func (v *ValidateResilientCluster) verifyOnlyOneInNamespace(ctx context.Context) error {
 	rstcList := &v1.ResilientClusterList{}
 	if err := v.Client.List(ctx, rstcList); err != nil {

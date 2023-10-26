@@ -16,8 +16,8 @@ import (
 //go:embed templates/agent templates/rbac
 var fsys embed.FS
 
-// Manager is a receiver representing the Addon manager. It encapsulates the Manager Options which will be used to
-// configure the manager run. Use NewManager for instantiation.
+// Manager is a receiver representing the Addon manager. It encapsulates the Manager Options which will be used for
+// configuring the manager run. Use NewManager for instantiation.
 type Manager struct {
 	Options *Options
 }
@@ -45,15 +45,18 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 
 	addonMgr, err := addonmanager.New(kubeConfig)
 	if err != nil {
+		logger.Error(err, "failed creating the addon manager")
 		return err
 	}
 
 	agentAddon, err := createAgent(ctx, kubeConfig, m.Options)
 	if err != nil {
+		logger.Error(err, "failed creating the addon agent")
 		return err
 	}
 
 	if err = addonMgr.AddAgent(agentAddon); err != nil {
+		logger.Error(err, "failed adding the addon agent to the addon manager")
 		return err
 	}
 
@@ -63,7 +66,7 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		}
 	}()
 
-	ctrl := controllers.NewControllerWithOptions(&controllers.Options{
+	ctrl := controllers.NewControllersWithOptions(&controllers.Options{
 		MetricAddr:       m.Options.ControllerMetricAddr,
 		ProbeAddr:        m.Options.ControllerProbeAddr,
 		LeaderElection:   m.Options.ControllerLeaderElection,

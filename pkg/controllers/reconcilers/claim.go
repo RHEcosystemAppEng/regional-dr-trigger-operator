@@ -1,6 +1,8 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
-package controllers
+package reconcilers
+
+// This file hosts our ClaimReconciler implementation registering for Hive's ClusterClaim CRs.
 
 import (
 	"context"
@@ -8,6 +10,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/controllers/actions"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/metrics"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,6 +18,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 // ClaimReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler for
@@ -22,11 +26,12 @@ import (
 type ClaimReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Options
 }
 
-// SetupWithManager is used for setting up the controller named 'mcra-managed-cluster-claim-controller' with the manager.
+// setupWithManager is used for setting up the controller named 'mcra-managed-cluster-claim-controller' with the manager.
 // It uses predicates as event filters for verifying only handling ClusterClaim CRs created by us.
-func (r *ClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ClaimReconciler) setupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("mcra-claim-controller").
 		For(&hivev1.ClusterClaim{}).
@@ -37,6 +42,7 @@ func (r *ClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterpools,verbs=get;list
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterclaims,verbs=get;list;create;watch
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments,verbs=get;list;create;delete
+// +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;list;create;update;delete
 
 // Reconcile is watching ClusterClaim CRs updating the appropriate ResilientCluster CRs, and deleting replaced
 // ClusterClaim CRs. Note, further permissions are listed in ClusterReconciler.Reconcile and AddonReconciler.Reconcile.
@@ -88,7 +94,7 @@ func (r *ClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	newSpokeName := claim.Spec.Namespace
 
 	// perform all actions required for replacing a cluster
-	actions.PerformReplace(ctx, actions.Options{Client: r.Client, OldSpoke: oldSpokeName, NewSpoke: newSpokeName})
+	actions.PerformReplace(ctx, actions.Options{Client: r.Client, OldSpoke: oldSpokeName, NewSpoke: newSpokeName, ConfigMapName: r.Options.ConfigMapName})
 
 	// when done, remove the annotation
 	annotations := claim.GetAnnotations()
@@ -100,5 +106,14 @@ func (r *ClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
+	metrics.NewSpokeReady.WithLabelValues(oldSpokeName, newSpokeName).Inc()
+
 	return ctrl.Result{}, nil
+}
+
+// init is registering the ClaimReconciler setup function for execution.
+func init() {
+	reconcilerFuncs = append(reconcilerFuncs, func(mgr manager.Manager, options Options) error {
+		return (&ClaimReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme(), Options: options}).setupWithManager(mgr)
+	})
 }

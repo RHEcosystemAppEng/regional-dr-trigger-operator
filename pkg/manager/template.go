@@ -15,8 +15,8 @@ import (
 	"text/template"
 )
 
-// loadTemplateFromFile is used to load a template file from fsys, and execute ig against template values. The executed
-// template will be generically converted.
+// loadTemplateFromFile is used for loading a template file from fsys, and execute ig against template values. The
+// executed template will be generically converted.
 func loadTemplateFromFile[T rbacv1.Role | rbacv1.RoleBinding](file string, values interface{}, target *T) error {
 	tmpl, err := template.ParseFS(fsys, file)
 	if err != nil {
