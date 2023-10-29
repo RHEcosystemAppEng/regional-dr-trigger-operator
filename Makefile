@@ -41,7 +41,7 @@ BIN_OC ?= oc##@ Set a custom 'oc' binary path if not in PATH
 ###############################
 ###### Various variables ######
 ###############################
-SPOKE_NAME ?= vp-blue##@ Set the name of the Spoke to install the addon manager in, defaults to 'cluster1'
+SPOKE_NAME ?= vp-pool-m2rdd##@ Set the name of the Spoke to install the addon manager in, defaults to 'cluster1'
 COVERAGE_THRESHOLD ?= 60##@ Set the unit test code coverage threshold, defaults to '60'
 
 #########################

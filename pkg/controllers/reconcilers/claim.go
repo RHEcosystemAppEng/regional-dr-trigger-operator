@@ -39,10 +39,11 @@ func (r *ClaimReconciler) setupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterpools,verbs=get;list
-// +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterclaims,verbs=get;list;create;watch
-// +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments,verbs=get;list;create;delete
-// +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;list;create;update;delete
+// +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterpools,verbs=get;list;watch
+// +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterclaims,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterclaims/finalizers,verbs=update
+// +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;list;watch;create;update;delete
 
 // Reconcile is watching ClusterClaim CRs updating the appropriate ResilientCluster CRs, and deleting replaced
 // ClusterClaim CRs. Note, further permissions are listed in ClusterReconciler.Reconcile and AddonReconciler.Reconcile.

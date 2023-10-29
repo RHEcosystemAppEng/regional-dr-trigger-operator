@@ -21,7 +21,7 @@ func verifyObject(fn func(obj client.Object) bool) predicate.Funcs {
 			return fn(deleteEvent.Object)
 		},
 		UpdateFunc: func(updateEvent event.UpdateEvent) bool {
-			return fn(updateEvent.ObjectOld) && fn(updateEvent.ObjectNew)
+			return fn(updateEvent.ObjectOld)
 		},
 		GenericFunc: func(genericEvent event.GenericEvent) bool {
 			return fn(genericEvent.Object)
@@ -46,11 +46,7 @@ func ownerName(name string) func(obj client.Object) bool {
 // returns true if it contains the aforementioned annotation. Use it with verifyObject.
 func hasAnnotation(annotation string) func(obj client.Object) bool {
 	return func(obj client.Object) bool {
-		for _, anno := range obj.GetAnnotations() {
-			if annotation == anno {
-				return true
-			}
-		}
-		return false
+		_, found := obj.GetAnnotations()[annotation]
+		return found
 	}
 }

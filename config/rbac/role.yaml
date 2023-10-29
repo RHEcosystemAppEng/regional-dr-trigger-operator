@@ -150,12 +150,19 @@ rules:
 - apiGroups:
   - hive.openshift.io
   resources:
+  - clusterclaims/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - hive.openshift.io
+  resources:
   - clusterdeployments
   verbs:
   - create
   - delete
   - get
   - list
+  - watch
 - apiGroups:
   - hive.openshift.io
   resources:
@@ -163,6 +170,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:

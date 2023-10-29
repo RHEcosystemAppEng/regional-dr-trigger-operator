@@ -6,15 +6,15 @@ package actions
 
 import (
 	"context"
-	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// moveConfigMap is used for moving our ConfigMap from the OLD spoke to the NEW one.
-func moveConfigMap(ctx context.Context, options Options) {
+// migrateConfigMap is used for moving our ConfigMap from the OLD spoke to the NEW one.
+func migrateConfigMap(ctx context.Context, options Options) {
 	logger := log.FromContext(ctx)
+	logger.Info("migrating ConfigMap resource", "old-spoke", options.OldSpoke, "new-spoke", options.NewSpoke, "config-name", options.ConfigMapName)
 
 	// the ConfigMap resides in the cluster-namespace
 	oldConfigSubject := types.NamespacedName{
@@ -25,31 +25,29 @@ func moveConfigMap(ctx context.Context, options Options) {
 	// fetch ConfigMap from OLD cluster, create a copy in the NEW cluster and delete the OLD one
 	oldConfig := &corev1.ConfigMap{}
 	if err := options.Client.Get(ctx, oldConfigSubject, oldConfig); err != nil {
-		logger.Error(err, fmt.Sprintf("failed fetching ManagedClusterAddon %s", oldConfigSubject))
+		logger.Info("no ConfigMap found", "old-spoke", options.OldSpoke, "config-name", options.ConfigMapName)
 	} else {
 		// create new config for NEW spoke and delete the OLD one
 		newConfig := oldConfig.DeepCopy()
 
 		newConfig.SetName(options.ConfigMapName)
 		newConfig.SetNamespace(options.NewSpoke)
-
-		newConfig.SetLabels(oldConfig.GetLabels())
-		newConfig.SetOwnerReferences(oldConfig.GetOwnerReferences())
-		newConfig.SetFinalizers(oldConfig.GetFinalizers())
-		newConfig.SetManagedFields(oldConfig.GetManagedFields())
 		newConfig.SetAnnotations(oldConfig.GetAnnotations())
+		newConfig.SetFinalizers(oldConfig.GetFinalizers())
+		newConfig.SetOwnerReferences(oldConfig.GetOwnerReferences())
+		newConfig.SetLabels(oldConfig.GetLabels())
 
 		if err = options.Client.Create(ctx, newConfig); err != nil {
-			logger.Error(err, fmt.Sprintf("failed creating new ConfigMap in %s", options.NewSpoke))
+			logger.Error(err, "failed creating new ConfigMap", "new-spoke", options.NewSpoke, "config-name", options.ConfigMapName)
 		}
 
 		if err = options.Client.Delete(ctx, oldConfig); err != nil {
-			logger.Error(err, fmt.Sprintf("failed deleting ConfigMap from %s", options.OldSpoke))
+			logger.Error(err, "failed deleting ConfigMap from", "old-spoke", options.OldSpoke, "config-name", options.ConfigMapName)
 		}
 	}
 }
 
-// init is registering moveConfigMap for running.
+// init is registering migrateConfigMap for running.
 func init() {
-	actionFuncs = append(actionFuncs, moveConfigMap)
+	actionFuncs = append(actionFuncs, migrateConfigMap)
 }

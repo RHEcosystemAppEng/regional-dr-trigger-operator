@@ -61,30 +61,32 @@ func (r *AddonReconciler) setupWithManager(mgr ctrl.Manager) error {
 func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// name and namespace are identical for both the ManagedClusterAddon and ResilientCluster crs
-	subject := types.NamespacedName{
+	// fetch the ManagedClusterAddon cr, end loop if not found
+	mcaSubject := types.NamespacedName{
 		Namespace: req.Namespace,
 		Name:      req.Name,
 	}
-
-	// fetch the ManagedClusterAddon cr, end loop if not found
 	mca := &addonv1alpha1.ManagedClusterAddOn{}
-	if err := r.Client.Get(ctx, subject, mca); err != nil {
+	if err := r.Client.Get(ctx, mcaSubject, mca); err != nil {
 		if errors.IsNotFound(err) {
-			logger.Info(fmt.Sprintf("%s ManagedClusterAddOn not found", subject.String()))
+			logger.Info(fmt.Sprintf("%s ManagedClusterAddOn not found", mcaSubject.String()))
 			return ctrl.Result{}, nil
 		}
-		logger.Error(err, fmt.Sprintf("%s ManagedClusterAddOn failed fetching", subject.String()))
+		logger.Error(err, fmt.Sprintf("%s ManagedClusterAddOn failed fetching", mcaSubject.String()))
 		return ctrl.Result{}, err
 	}
 
 	// fetch the ResilientCluster cr, note if found or not
+	rcSubject := types.NamespacedName{
+		Namespace: req.Namespace,
+		Name:      req.Namespace,
+	}
 	rc := &apiv1.ResilientCluster{}
 	rcFound := true
-	if err := r.Client.Get(ctx, subject, rc); err != nil {
+	if err := r.Client.Get(ctx, rcSubject, rc); err != nil {
 		// only not-found errors are acceptable here
 		if !errors.IsNotFound(err) {
-			logger.Error(err, fmt.Sprintf("%s ResilientCluster failed fetching", subject.String()))
+			logger.Error(err, fmt.Sprintf("%s ResilientCluster failed fetching", rcSubject.String()))
 			return ctrl.Result{}, err
 		}
 		rcFound = false
@@ -98,7 +100,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			if rc.DeletionTimestamp.IsZero() {
 				// we define proper ownership while creating the instance, this is just a fail-safe
 				if err := r.Client.Delete(ctx, rc); err != nil {
-					logger.Error(err, fmt.Sprintf("%s ResilientCluster deletion failed", subject.String()))
+					logger.Error(err, fmt.Sprintf("%s ResilientCluster deletion failed", rcSubject.String()))
 					return ctrl.Result{}, err
 				}
 			}
@@ -118,14 +120,14 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		rc.Status.CurrentStatus = currentStatus
 
 		if err := r.Client.Update(ctx, rc); err != nil {
-			logger.Error(err, fmt.Sprintf("%s ResilientCluster update failed", subject.String()))
+			logger.Error(err, fmt.Sprintf("%s ResilientCluster update failed", rcSubject.String()))
 			return ctrl.Result{}, err
 		}
 	} else {
 		// ResilientCluster doesn't exist, we need to create it
-		rc.SetName(subject.Name)
-		rc.SetNamespace(subject.Namespace)
-		rc.SetFinalizers([]string{mcra.FinalizerUsedByMcra})
+		rc.SetName(rcSubject.Name)
+		rc.SetNamespace(rcSubject.Namespace)
+		rc.SetFinalizers([]string{mcra.FinalizerResilientClusterCleanup})
 		if err := controllerutil.SetOwnerReference(mca, rc, r.Scheme); err != nil {
 			logger.Error(err, "failed to set ManagedClusterAddon as owner on ResilientCluster")
 			return ctrl.Result{}, err
@@ -137,7 +139,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		rc.Status.CurrentStatus = currentStatus
 
 		if err := r.Client.Create(ctx, rc); err != nil {
-			logger.Error(err, fmt.Sprintf("%s ResilientCluster creation failed", subject.String()))
+			logger.Error(err, fmt.Sprintf("%s ResilientCluster creation failed", rcSubject.String()))
 			return ctrl.Result{}, err
 		}
 	}

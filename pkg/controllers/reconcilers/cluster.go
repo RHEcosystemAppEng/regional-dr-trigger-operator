@@ -77,11 +77,11 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// deletion cleanup
 	if !rc.DeletionTimestamp.IsZero() {
 		// ResilientCluster is in delete process
-		if controllerutil.ContainsFinalizer(rc, mcra.FinalizerUsedByMcra) {
+		if controllerutil.ContainsFinalizer(rc, mcra.FinalizerResilientClusterCleanup) {
 			// TODO add cleanup code here
 
 			// when cleanup done, remove the finalizer
-			controllerutil.RemoveFinalizer(rc, mcra.FinalizerUsedByMcra)
+			controllerutil.RemoveFinalizer(rc, mcra.FinalizerResilientClusterCleanup)
 			if err := r.Client.Update(ctx, rc); err != nil {
 				logger.Error(err, fmt.Sprintf("%s failed removing finalizer", subject.String()))
 				return ctrl.Result{}, err
@@ -113,14 +113,18 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if err = verifyPool(pool); err != nil {
 		logger.Error(err, "verify hive pool failed")
-		return ctrl.Result{}, err
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	claimName := fmt.Sprintf("mcra-claim-%s", rand.String(4))
 	newClaim := &hivev1.ClusterClaim{}
 	newClaim.SetName(claimName)
 	newClaim.SetNamespace(config.HivePoolName)
-	newClaim.SetAnnotations(map[string]string{mcra.AnnotationPreviousSpoke: rc.Name})
+	newClaim.SetAnnotations(map[string]string{
+		mcra.AnnotationCreatedBy:     mcra.AddonName,
+		mcra.AnnotationPreviousSpoke: req.Namespace,
+	})
+	newClaim.Spec = hivev1.ClusterClaimSpec{ClusterPoolName: config.HivePoolName}
 
 	if err = r.Client.Create(ctx, newClaim); err != nil {
 		logger.Error(err, "failed creating ClusterClaim")
@@ -183,8 +187,7 @@ func (r *ClusterReconciler) loadClusterPool(ctx context.Context, poolName string
 // require a new claim if x time has passed, allowing the cluster a change to recuperate.
 func requiresNewClaim(rc *apiv1.ResilientCluster) bool {
 	return rc.Status.CurrentStatus.Availability != apiv1.ClusterAvailable &&
-		rc.Status.CurrentStatus != rc.Status.PreviousStatus &&
-		rc.Status.CurrentStatus != rc.Status.InitialStatus
+		rc.Status.PreviousStatus.Availability == apiv1.ClusterAvailable
 }
 
 // configMapToConfig is used for extracting known keys from a ConfigMap and build a new Config from the extracted values.
@@ -201,7 +204,7 @@ func configMapToConfig(configMap *corev1.ConfigMap) Config {
 // verifyPool is used for verifying a hivev1.ClusterPool is ok and a ClusterClaim can be made. Initial implementation is
 // based on pool's ready status. Further verifications, i.e. checking condition statuses, can be added here.
 func verifyPool(pool *hivev1.ClusterPool) error {
-	if pool.Status.Ready > 0 {
+	if pool.Status.Size > 0 {
 		return nil
 	}
 	return fmt.Errorf("cluster pool is not ready for claims")
