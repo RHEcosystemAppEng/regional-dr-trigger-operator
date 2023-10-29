@@ -8,8 +8,8 @@ resources:
   - ../addon
   - ../metrics #[METRICS_PROXY]
   - ../prometheus #[PROMETHEUS]
-  - ../webhook #[WEBHOOK]
-  - ../certmanager #[CERT_MANAGER]
+#  - ../webhook #[WEBHOOK]
+#  - ../certmanager #[CERT_MANAGER]
 commonLabels:
   app.kubernetes.io/part-of: multicluster-resiliency-addon
 # this breaks for devel versions
@@ -24,12 +24,12 @@ replicas:
     count: 1
 replacements:
   - path: replacements/service_account_name_as_arg_to_deployment.yaml
-  - path: replacements/certmanager_certificate_and_webhook_injections.yaml #[CERT_MANAGER]
+#  - path: replacements/certmanager_certificate_and_webhook_injections.yaml #[CERT_MANAGER]
   - path: replacements/prometheus_service_monitor_selection.yaml #[PROMETHEUS]
 patches:
   - path: patches/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
-  - path: patches/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
-  - path: patches/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
-  - target:
-      kind: Deployment
-    path: patches/enable_validation_webhook_as_arg_to_deployment.yaml #[WEBHOOK]
+#  - path: patches/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
+#  - path: patches/validating_webhook_certmanager_annotations.yaml #[CERT_MANAGER]
+#  - target:
+#      kind: Deployment
+#    path: patches/enable_validation_webhook_as_arg_to_deployment.yaml #[WEBHOOK]
