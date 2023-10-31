@@ -8,3 +8,5 @@ labels:
       app.kubernetes.io/component: admission-webhook
 configurations:
   - kustomizeconfig.yaml
+patches:
+  - path: patches/validating_webhook_cert_injection_annotation.yaml

@@ -3,5 +3,5 @@ resources:
 labels:
   - pairs:
       app.kubernetes.io/component: addon-core
-#patches:
-#  - path: patches/crd_certmanager_annotations.yaml #[CERT_MANAGER]
+patches:
+  - path: patches/crd_cert_injection_annotation.yaml #[WEBHOOK]
