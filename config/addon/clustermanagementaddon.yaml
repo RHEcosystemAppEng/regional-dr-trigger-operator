@@ -4,7 +4,7 @@ metadata:
   name: multicluster-resiliency-addon
 spec:
   addOnMeta:
-    displayName: Multicluster Resiliency Addon
+    displayName: MultiCluster Resiliency Addon
     description: "multicluster-resiliency-addon TODO add description"
   supportedConfigs:
     - group: addon.open-cluster-management.io

@@ -1,7 +1,7 @@
 # Copyright (c) 2023 Red Hat, Inc.
 
 ###############################################
-###### Multicluster Resiliency ACM Addon ######
+###### MultiCluster Resiliency ACM Addon ######
 ###############################################
 default: help
 

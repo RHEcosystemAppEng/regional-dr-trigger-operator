@@ -18,7 +18,7 @@ func init() {
 		NewControllerCommandConfig("multicluster-resiliency-addon-manager", version.Get(), mgr.Run).
 		NewCommand()
 	mgrCmd.Use = "manager"
-	mgrCmd.Short = "Multicluster Resiliency Addon Manager"
+	mgrCmd.Short = "MultiCluster Resiliency Addon Manager"
 
 	mgrCmd.Flags().StringVar(&mgr.Options.ControllerMetricAddr, "controller-metric-address", ":8080", "TODO")
 	mgrCmd.Flags().StringVar(&mgr.Options.ControllerProbeAddr, "controller-probe-address", ":8081", "TODO")
