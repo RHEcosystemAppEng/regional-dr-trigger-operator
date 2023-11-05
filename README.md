@@ -53,7 +53,7 @@ replace it.
 * Configuration - WIP
 * Hacking - WIP
 * Developing - WIP
-* Metrics - WIP
+* [Metrics](docs/metrics.md) - A list of _Prometheus_ metrics reported by the Addon
 
 <!--LINKS-->
 [acm]: https://www.redhat.com/en/technologies/management/advanced-cluster-management
