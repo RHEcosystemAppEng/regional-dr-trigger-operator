@@ -18,7 +18,7 @@ func init() {
 		NewControllerCommandConfig("multicluster-resiliency-addon-agent", version.Get(), agt.Run).
 		NewCommand()
 	agtCmd.Use = "agent"
-	agtCmd.Short = "Multicluster Resiliency Addon Agent"
+	agtCmd.Short = "MultiCluster Resiliency Addon Agent"
 
 	agtCmd.Flags().StringVar(&agt.Options.HubKubeConfigFile, "hub-kubeconfig", "blabla", "TODO")
 	agtCmd.Flags().StringVar(&agt.Options.SpokeName, "spoke-name", "blabla", "TODO")
