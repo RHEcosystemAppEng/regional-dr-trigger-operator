@@ -50,7 +50,7 @@ replace it.
 
 ## Documentation
 
-* Configuration - WIP
+* [Configure](docs/configure.md) - Configure the Addon.
 * Hacking - WIP
 * Developing - WIP
 * [Metrics](docs/metrics.md) - A list of _Prometheus_ metrics reported by the Addon
