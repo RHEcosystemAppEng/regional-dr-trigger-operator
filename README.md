@@ -51,7 +51,7 @@ replace it.
 ## Documentation
 
 * [Configure](docs/configure.md) - Configure the Addon.
-* Hacking - WIP
+* [Hacking](docs/hacking.md) - A walk through the Addon process.
 * Developing - WIP
 * [Metrics](docs/metrics.md) - A list of _Prometheus_ metrics reported by the Addon
 
