@@ -48,14 +48,14 @@ func NewControllersWithOptions(options *Options) Controllers {
 func (c *Controllers) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	logger := log.FromContext(ctx)
 
-	// create and configure our scheme
+	// create and configure the scheme
 	scheme := runtime.NewScheme()
 	if err := installTypes(scheme); err != nil {
 		logger.Error(err, "failed installing types")
 		return err
 	}
 
-	// create a manager for our controller
+	// create a manager for the controller
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
 		Logger:                 logger,
@@ -100,25 +100,25 @@ func (c *Controllers) Run(ctx context.Context, kubeConfig *rest.Config) error {
 
 // installTypes is used for installing all the required types with a scheme.
 func installTypes(scheme *runtime.Scheme) error {
-	// our own types
+	// the addon's own types
 	if err := apiv1.Install(scheme); err != nil {
-		return fmt.Errorf("failed installing our types to our scheme, %v", err)
+		return fmt.Errorf("failed installing the addon's types into the addon's scheme, %v", err)
 	}
 	// required for ManagedClusterAddon and AddonDeploymentConfig
 	if err := addonv1alpha1.Install(scheme); err != nil {
-		return fmt.Errorf("failed installing the framework types to our scheme, %v", err)
+		return fmt.Errorf("failed installing the framework types into the addon's scheme, %v", err)
 	}
 	// required for ClusterClaim and ClusterDeployment
 	if err := hivev1.AddToScheme(scheme); err != nil {
-		return fmt.Errorf("failed installing hive's types to our scheme, %v", err)
+		return fmt.Errorf("failed installing hive's types into the addon's scheme, %v", err)
 	}
 	// required for ConfigMap
 	if err := corev1.AddToScheme(scheme); err != nil {
-		return fmt.Errorf("failed installing the core types to our scheme, %v", err)
+		return fmt.Errorf("failed installing the core types into the addon's scheme, %v", err)
 	}
 	// required for ManagedCluster
 	if err := clusterv1.Install(scheme); err != nil {
-		return fmt.Errorf("failed installing ocm's types to our scheme, %v", err)
+		return fmt.Errorf("failed installing ocm's types into the addon's scheme, %v", err)
 	}
 	return nil
 }

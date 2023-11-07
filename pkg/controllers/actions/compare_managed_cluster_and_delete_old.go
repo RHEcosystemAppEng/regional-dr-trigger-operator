@@ -13,9 +13,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// compareManagedClusterAndDeleteOld is used for reconciling ManagedCluster spec, labels, annotations, finalizers, and
-// owner references, from the ManagedCluster representing the OLD spoke into the MangedCluster representing the NEW one.
-// When done, It deletes the OLD ManagedCluster.
+// compareManagedClusterAndDeleteOld is used for reconciling ManagedCluster labels and annotations from the
+// ManagedCluster representing the OLD spoke into the MangedCluster representing the NEW one. When done, It deletes the
+// OLD ManagedCluster.
 func compareManagedClusterAndDeleteOld(ctx context.Context, options Options) {
 	logger := log.FromContext(ctx)
 	logger.Info("comparing ManagedCluster resources", "old-spoke", options.OldSpoke, "new-spoke", options.NewSpoke)

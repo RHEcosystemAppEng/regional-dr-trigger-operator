@@ -50,10 +50,12 @@ replace it.
 
 ## Documentation
 
-* Configuration - WIP
-* Hacking - WIP
-* Developing - WIP
-* Metrics - WIP
+* [Configure](docs/configure.md) - Learn how to configure the Addon
+* [Hacking](docs/hacking.md) - A walk through the Addon process
+* [Actions](docs/actions.md) - A list of actions preformed by the Addon for replacing a cluster
+* [Coding](docs/coding.md) - A guide for developers
+* [Metrics](docs/metrics.md) - A list of _Prometheus_ metrics reported by the Addon
+* [Contributing](.github/CONTRIBUTING.md) - Contributing guidelines
 
 <!--LINKS-->
 [acm]: https://www.redhat.com/en/technologies/management/advanced-cluster-management

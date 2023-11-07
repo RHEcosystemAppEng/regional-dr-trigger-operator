@@ -2,7 +2,7 @@
 
 package reconcilers
 
-// This file hosts our ClaimReconciler implementation registering for Hive's ClusterClaim CRs.
+// This file hosts the ClaimReconciler implementation registering for Hive's ClusterClaim CRs.
 
 import (
 	"context"

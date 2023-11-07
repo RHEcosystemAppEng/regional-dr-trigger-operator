@@ -2,7 +2,7 @@
 
 package reconcilers
 
-// This file hosts our AddonReconciler implementation registering for the framework's ManagedClusterAddOn CRs.
+// This file hosts the AddonReconciler implementation registering for the framework's ManagedClusterAddOn CRs.
 
 import (
 	"context"
@@ -31,7 +31,7 @@ type AddonReconciler struct {
 }
 
 // setupWithManager is used for setting up the controller named 'mcra-managed-cluster-agent-controller' with the manager.
-// It uses predicates as event filters for verifying only handling ManagedClusterAddon CRs for our own Addon.
+// It uses predicates as event filters for verifying only handling ManagedClusterAddon CRs for the Addon itself.
 func (r *AddonReconciler) setupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("mcra-addon-controller").

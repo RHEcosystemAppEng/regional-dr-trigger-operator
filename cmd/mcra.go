@@ -33,7 +33,7 @@ func Execute() error {
 	return mcraCmd.Execute()
 }
 
-// configureLogging is used for configuring and setting our k8s environment logger persistently for every command.
+// configureLogging is used for configuring and setting the k8s environment logger persistently for every command.
 func configureLogging(cmd *cobra.Command, args []string) {
 	logOpts := &zap.Options{
 		Encoder: zapcore.NewJSONEncoder(zapcore.EncoderConfig{

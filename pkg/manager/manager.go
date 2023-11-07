@@ -2,7 +2,7 @@
 
 package manager
 
-// This file hosts functions and types for running our Addon Manager on the Hub cluster.
+// This file hosts functions and types for running the Addon Manager on the Hub cluster.
 
 import (
 	"context"

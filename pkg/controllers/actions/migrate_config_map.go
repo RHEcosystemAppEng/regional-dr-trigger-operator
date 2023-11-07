@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// migrateConfigMap is used for moving our ConfigMap from the OLD spoke to the NEW one.
+// migrateConfigMap is used for moving the Addon's ConfigMap from the OLD spoke to the NEW one.
 func migrateConfigMap(ctx context.Context, options Options) {
 	logger := log.FromContext(ctx)
 	logger.Info("migrating ConfigMap resource", "old-spoke", options.OldSpoke, "new-spoke", options.NewSpoke, "config-name", options.ConfigMapName)

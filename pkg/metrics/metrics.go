@@ -20,12 +20,12 @@ const (
 
 var ResilientSpokeNotAvailable = *prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name: "resilient_spoke_not_available_count",
-	Help: "Count times the Resilient Spoke cluster was not available",
+	Help: "Count times the Resilient Spoke cluster was reported not available",
 }, []string{LabelSpokeName})
 
 var ResilientSpokeAvailable = *prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name: "resilient_spoke_available_count",
-	Help: "Count times the Resilient Spoke cluster was available",
+	Help: "Count times the Resilient Spoke cluster was reported available",
 }, []string{LabelSpokeName})
 
 var NewClusterClaimCreated = *prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -38,7 +38,7 @@ var NewSpokeReady = *prometheus.NewCounterVec(prometheus.CounterOpts{
 	Help: "Count the time we got a new ready cluster",
 }, []string{LabelOldSpokeName, LabelNewSpokeName})
 
-// init is registering our metrics with K8S registry.
+// init is registering the metrics with K8S registry.
 func init() {
 	metrics.Registry.MustRegister(
 		ResilientSpokeNotAvailable,

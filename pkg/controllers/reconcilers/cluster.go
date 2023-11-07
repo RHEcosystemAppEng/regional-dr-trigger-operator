@@ -2,7 +2,7 @@
 
 package reconcilers
 
-// This file hosts our ClusterReconciler implementation registering for our ResilientCluster CRs.
+// This file hosts the ClusterReconciler implementation registering for ResilientCluster CRs.
 
 import (
 	"context"
