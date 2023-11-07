@@ -1,11 +1,12 @@
-# TODO replace with ubi9/go-toolset once go 1.20 is supported
-FROM docker.io/library/golang:1.20 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.20 as builder
 
+USER root
 WORKDIR /mcra
 COPY . .
 RUN make build
+USER default
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.2
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
 
 USER root
 COPY --from=builder /mcra/build/mcra /usr/bin/mcra
