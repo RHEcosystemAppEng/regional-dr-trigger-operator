@@ -133,10 +133,10 @@ test/mut: $(BIN_GREMLINS) ## Run mutation tests
 ###########################
 ###### Lint codebase ######
 ###########################
-lint/all: lint lint/ci lint/containerfile ## Lint the entire project (code, ci, containerfile)
+lint/all: lint/code lint/ci lint/containerfile ## Lint the entire project (code, ci, containerfile)
 
-.PHONY: lint
-lint: $(BIN_GOLINTCI) ## Lint the code
+.PHONY: lint/code
+lint/code: $(BIN_GOLINTCI) ## Lint the code
 	go fmt ./...
 	$(BIN_GOLINTCI) run
 
