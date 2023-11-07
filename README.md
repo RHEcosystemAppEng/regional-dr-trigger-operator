@@ -20,7 +20,7 @@ spec:
 Create a _ConfigMap_ named _multicluster-resiliency-addon-config_, setting the target [Hive ClusterPool][pool] for
 claiming new clusters from.
 
-| The _Addon_ takes its configuration from either the _Managed Cluster Namespace_ or the _open-cluster-management_ one.
+| The _Addon_ takes its configuration from either the _Managed Cluster Namespace_ or the _open-cluster-management_ one.<br/>
 | The former will take precedence.
 
 ```yaml
@@ -35,7 +35,7 @@ data:
 
 ## Verify
 
-After installing the _Addon_ in a _Managed Cluster Namespace_, a _ResilientCluster_ reflecting the cluster state is
+After installing the _Addon_ in a _Managed Cluster Namespace_, a _ResilientCluster_ reflecting the cluster status is
 created:
 
 ```shell
