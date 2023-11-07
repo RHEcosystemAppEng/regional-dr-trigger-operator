@@ -2,7 +2,7 @@
 
 package cmd
 
-// This file hosts the 'agent' command used for running our Addon Agent on a Spoke cluster.
+// This file hosts the 'agent' command used for running the Addon Agent on a Spoke cluster.
 
 import (
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/agent"

@@ -44,7 +44,7 @@ func (v *ValidateResilientCluster) ValidateDelete(ctx context.Context, obj runti
 	return nil, v.verifyUser(ctx)
 }
 
-// verifyUser is used for verifying the operation requesting user is our own ServiceAccount.
+// verifyUser is used for verifying the operation requesting user is the Addon's own ServiceAccount.
 func (v *ValidateResilientCluster) verifyUser(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	request, err := admission.RequestFromContext(ctx)

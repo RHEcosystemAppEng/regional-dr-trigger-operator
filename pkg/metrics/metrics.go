@@ -38,7 +38,7 @@ var NewSpokeReady = *prometheus.NewCounterVec(prometheus.CounterOpts{
 	Help: "Count the time we got a new ready cluster",
 }, []string{LabelOldSpokeName, LabelNewSpokeName})
 
-// init is registering our metrics with K8S registry.
+// init is registering the metrics with K8S registry.
 func init() {
 	metrics.Registry.MustRegister(
 		ResilientSpokeNotAvailable,

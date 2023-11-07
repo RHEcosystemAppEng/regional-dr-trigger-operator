@@ -51,4 +51,4 @@ spec:
     namespace: "<managed-cluster-name-goes-here>"
 ```
 
-[Go Back](../README.md)
+[Go Back](../README.md#documentation)

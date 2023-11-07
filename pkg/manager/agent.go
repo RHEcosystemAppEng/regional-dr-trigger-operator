@@ -2,7 +2,7 @@
 
 package manager
 
-// This file hosts functions and types for configuring our Addon Manager with instructions for creating Agent Addons.
+// This file hosts functions and types for configuring the Addon Manager with instructions for creating Agent Addons.
 
 import (
 	"context"

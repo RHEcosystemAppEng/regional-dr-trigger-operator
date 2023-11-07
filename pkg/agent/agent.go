@@ -2,7 +2,7 @@
 
 package agent
 
-// This file hosts functions and types for running our Addon Agent on the Spoke cluster.
+// This file hosts functions and types for running the Addon Agent on the Spoke cluster.
 
 import (
 	"context"

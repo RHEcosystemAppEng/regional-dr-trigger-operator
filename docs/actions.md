@@ -17,9 +17,7 @@ actions are preformed in order to switch the workload to the new cluster.
 | [Migrate known _ConfigMap_][migrate-cm]              | Moves the _Addon_'s _ConfigMap_ if found, from the OLD Spoke to the NEW one.                                                            |
 | [Migrate addon's _ManagedClusterAddon_][migrate-mca] | Moves the _Addon_'s _ManagedClusterAddon_ if found, from the OLD Spoke to the NEW one.                                                  |
 
-
-
-[Go Back](../README.md)
+[Go Back](../README.md#documentation)
 
 <!--LINKS-->
 [hive-claim]: https://github.com/openshift/hive/blob/master/docs/clusterpools.md#sample-cluster-claim

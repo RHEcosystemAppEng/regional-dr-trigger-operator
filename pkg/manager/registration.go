@@ -2,7 +2,7 @@
 
 package manager
 
-// This file hosts functions and types for setting our Addon Manager registration process for Agent Addons.
+// This file hosts functions and types for setting the Addon Manager registration process for Agent Addons.
 
 import (
 	"context"

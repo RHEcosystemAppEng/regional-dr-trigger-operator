@@ -33,7 +33,7 @@ getting updated by the [Registration Component][registration-controller] based o
 _Addon Agent_.
 
 This is accomplished by a controller named [MCRA Addon Controller](../pkg/controllers/reconcilers/addon.go), watching
-_ManagedClusterAddon_ resources for our _Addon_, and creating/updating the corresponding  _ResilientCluster_ resources.
+_ManagedClusterAddon_ resources for the _Addon_, and creating/updating the corresponding  _ResilientCluster_ resources.
 
 > Note, _ResilientCluster_ resources creation, modification, and deletion, are enforced by a
 > _Validation Admission Webhook_, enforcing no outside interference in the API process. 
@@ -58,7 +58,7 @@ _ClusterRunning_ and _Pending_. If the claim is determined to be completed, mean
 controller will proceed to invoke the actions described in [Actions](actions.md) in order to get the new cluster ready
 for its workload.
 
-[Go Back](../README.md)
+[Go Back](../README.md#documentation)
 
 <!--LINKS-->
 [acm-clusters]: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.8/html-single/clusters/index

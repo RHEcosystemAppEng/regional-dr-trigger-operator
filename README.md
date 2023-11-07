@@ -50,10 +50,10 @@ replace it.
 
 ## Documentation
 
-* [Configure](docs/configure.md) - Configure the Addon.
-* [Hacking](docs/hacking.md) - A walk through the Addon process.
-* [Actions](docs/actions.md) - A list of actions preformed by the Addon in order to replace a cluster.
-* Developing - WIP
+* [Configure](docs/configure.md) - Learn how to configure the Addon
+* [Hacking](docs/hacking.md) - A walk through the Addon process
+* [Actions](docs/actions.md) - A list of actions preformed by the Addon for replacing a cluster
+* [Coding](docs/coding.md) - A guide for developers
 * [Metrics](docs/metrics.md) - A list of _Prometheus_ metrics reported by the Addon
 
 <!--LINKS-->
