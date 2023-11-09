@@ -3,6 +3,8 @@
 The _MultiCluster Resiliency Addon_ is a [Red Hat Advanced Cluster Management][acm] _Addon_. It replaces unavailable
 _Managed Clusters_ by leveraging [OpenShift Hive][hive].
 
+Helm chart for deploying the Addon can be found [here][chart].
+
 ## Usage
 
 Create a _ManagedClusterAddon_ resource in a _Managed Cluster Namespace_ to make it _Resilient_. 
@@ -61,3 +63,4 @@ replace it.
 [acm]: https://www.redhat.com/en/technologies/management/advanced-cluster-management
 [hive]: https://github.com/openshift/hive
 [pool]: https://github.com/openshift/hive/blob/master/docs/clusterpools.md
+[chart]: https://github.com/RHEcosystemAppEng/multicluster-resiliency-addon-chart/tree/main/multicluster-resiliency-addon

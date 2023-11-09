@@ -18,7 +18,11 @@ contribution. See the [DCO](../DCO) file for details.
 2. The repo owners will respond to your issue promptly.
 3. Fork the repo, develop and test your code changes.
 4. Submit a pull request.
-5. Make sure the PR title adhere to the [Conventional Commits Specifications](https://www.conventionalcommits.org/)
+5. Make sure the PR title adhere to the [Conventional Commits Specifications](https://www.conventionalcommits.org/).
+6. Keep each PR addressing only one concern.
+7. If the PR includes modifications to any of the manifests in [config](../config), consider modifying the _Chart_
+   manifests in the [chart repository][chart] in a related PR.
+
 
 ## Generating Code and Manifests
 
@@ -56,3 +60,6 @@ Based on your patch type, build with one/all of:
 make build
 make build/image
 ```
+
+<!--LINKS-->
+[chart]: https://github.com/RHEcosystemAppEng/multicluster-resiliency-addon-chart/tree/main/multicluster-resiliency-addon
