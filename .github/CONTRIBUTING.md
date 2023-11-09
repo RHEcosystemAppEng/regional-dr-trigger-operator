@@ -62,4 +62,4 @@ make build/image
 ```
 
 <!--LINKS-->
-[chart]: https://github.com/RHEcosystemAppEng/multicluster-resiliency-addon-chart/tree/main/multicluster-resiliency-addon
+[chart]: https://github.com/RHEcosystemAppEng/multicluster-resiliency-addon-chart

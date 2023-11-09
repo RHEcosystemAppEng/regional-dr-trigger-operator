@@ -63,4 +63,4 @@ replace it.
 [acm]: https://www.redhat.com/en/technologies/management/advanced-cluster-management
 [hive]: https://github.com/openshift/hive
 [pool]: https://github.com/openshift/hive/blob/master/docs/clusterpools.md
-[chart]: https://github.com/RHEcosystemAppEng/multicluster-resiliency-addon-chart/tree/main/multicluster-resiliency-addon
+[chart]: https://github.com/RHEcosystemAppEng/multicluster-resiliency-addon-chart
