@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: sm
-  namespace: monitoring
+  namespace: openshift-monitoring
 spec:
   endpoints:
     - path: /metrics
