@@ -22,6 +22,9 @@ data:
 The agent deployment can be configured using a global _AddonDeploymentConfig_ named
 _multicluster-resiliency-addon-deploy-config_ in the _open-cluster-management_ namespace:
 
+> Note the agent installation namespace on the _Spoke_ can be customized using either the _ManagedClusterAddOn_'s _spec.installNamespace_
+> or the _AddOnDeploymentConfig_'s _spec.agentInstallNamespace_. The latter takes precedence regardless if it global or per-cluster.
+
 ```yaml
 apiVersion: addon.open-cluster-management.io/v1alpha1
 kind: AddOnDeploymentConfig
@@ -29,6 +32,7 @@ metadata:
   name: multicluster-resiliency-addon-deploy-config
   namespace: open-cluster-management
 spec:
+  agentInstallNamespace: open-cluster-management-agent-addon
   customizedVariables:
   - name: AgentReplicas
     value: "1"
