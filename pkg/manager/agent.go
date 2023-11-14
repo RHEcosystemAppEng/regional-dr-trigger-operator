@@ -28,7 +28,8 @@ type agentValues struct {
 
 // deploymentValues i used for encapsulating template values extracted from the AddonDeploymentConfig.
 type deploymentValues struct {
-	AgentReplicas int
+	AgentReplicas  int
+	AgentNamespace string
 }
 
 // createAgent is used for creating the Addon Agent configuration for the Addon Manager.
@@ -44,8 +45,10 @@ func createAgent(ctx context.Context, kubeConfig *rest.Config, options *Options)
 		NewAgentAddonFactory(mcra.AddonName, fsys, "templates/agent").
 		WithConfigGVRs(utils.AddOnDeploymentConfigGVR).
 		WithGetValuesFuncs(
-			addonfactory.GetAddOnDeploymentConfigValues(getter, loadDeploymentValuesFunc),
-			getTemplateValuesFunc(options)).
+			// keep following functions order to allow AddOnDeploymentConfig's AgentInstallNamespace to override
+			// ManagedClusterAddOn's InstallNamespace
+			getTemplateValuesFunc(options),
+			addonfactory.GetAddOnDeploymentConfigValues(getter, loadDeploymentValuesFunc)).
 		WithAgentRegistrationOption(getRegistrationOptionFunc(ctx, kubeConfig)).
 		BuildTemplateAgentAddon()
 }
@@ -56,8 +59,10 @@ func getTemplateValuesFunc(options *Options) func(cluster *clusterv1.ManagedClus
 		values := agentValues{
 			KubeConfigSecret: fmt.Sprintf("%s-hub-kubeconfig", addon.Name),
 			SpokeName:        cluster.Name,
-			AgentNamespace:   addon.Spec.InstallNamespace,
-			AgentImage:       options.AgentImage,
+			// namespace from ManagedClusterAddon defaults to 'open-cluster-management-agent-addon'
+			// this function should be called before loadDeploymentValuesFunc to allow this to be overridden
+			AgentNamespace: addon.Spec.InstallNamespace,
+			AgentImage:     options.AgentImage,
 		}
 
 		return addonfactory.StructToValues(values), nil
@@ -76,6 +81,12 @@ func loadDeploymentValuesFunc(config addonv1alpha1.AddOnDeploymentConfig) (addon
 
 			values.AgentReplicas = replicas
 		}
+	}
+	// namespace from AddOnDeploymentConfig is set to its default open-cluster-management-agent-addon, we don't want it
+	// to override the one set in ManagedClusterAddOn
+	if config.Spec.AgentInstallNamespace != "open-cluster-management-agent-addon" {
+		// this function should be called after getTemplateValuesFunc for this to override the one set in ManagedClusterAddOn
+		values.AgentNamespace = config.Spec.AgentInstallNamespace
 	}
 	return addonfactory.StructToValues(values), nil
 }

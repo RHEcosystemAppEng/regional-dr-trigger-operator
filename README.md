@@ -15,8 +15,6 @@ kind: ManagedClusterAddOn
 metadata:
   name: multicluster-resiliency-addon
   namespace: "<managed-cluster-name-goes-here>"
-spec:
-  installNamespace: open-cluster-management-agent-addon
 ```
 
 Create a _ConfigMap_ named _multicluster-resiliency-addon-config_, setting the target [Hive ClusterPool][pool] for

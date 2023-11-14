@@ -3,5 +3,3 @@ kind: ManagedClusterAddOn
 metadata:
   name: multicluster-resiliency-addon
   namespace: replace-with-cluster-namespace
-spec:
-  installNamespace: open-cluster-management-agent-addon
