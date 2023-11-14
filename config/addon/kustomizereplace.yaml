@@ -12,7 +12,7 @@
         delimiter: =
         index: 1
 # set the config map name as an argument to deployment
-# target text before replacement: '--configmap_name=config'
+# target text before replacement: '--configmap-name=config'
 - source:
     fieldPath: metadata.name
     kind: ConfigMap
