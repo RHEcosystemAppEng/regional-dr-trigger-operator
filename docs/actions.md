@@ -9,13 +9,13 @@ actions are preformed in order to switch the workload to the new cluster.
 > Note, the creation of a _ManagedCluster_ resource representing the new cluster in _ACM_, is handled by
 > [ACM's ClusterClaim Controller][cluster-claim-controller] and not by the _Addon_.
 
-| Action                                               | Description                                                                                                                             |
-|------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| [Compare _ManagedCluster_ Resources][compare-mc]     | Copies labels and annotations from the OLD _MC_ to the NEW one, overriding only the _clusterset_ label. Deletes the OLD _MC_ when done. |
-| [Delete Old _ClusterDeployment_][delete-cd]          | Deletes the _ClusterDeployment_ from the OLD Spoke.                                                                                     |
-| [Migrate known _AddonDeploymentConfig_][migrate-adc] | Moves any _AddonDeploymentConfig_ resources associated with the _Addon_'s _ManagedClusterAddon_ from the OLD Spoke to the NEW one.      |
-| [Migrate known _ConfigMap_][migrate-cm]              | Moves the _Addon_'s _ConfigMap_ if found, from the OLD Spoke to the NEW one.                                                            |
-| [Migrate addon's _ManagedClusterAddon_][migrate-mca] | Moves the _Addon_'s _ManagedClusterAddon_ if found, from the OLD Spoke to the NEW one.                                                  |
+| Action                                               | Description                                                                                                                                                         |
+|------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Compare _ManagedCluster_ Resources][compare-mc]     | Copies labels and annotations from the OLD _MC_ to the NEW one, overriding only the _clusterset_ label. Deletes the OLD _MC_ when done.                             |
+| [Delete Old _ClusterDeployment_][delete-cd]          | Deletes the _ClusterDeployment_ from the OLD Spoke.                                                                                                                 |
+| [Migrate known _AddonDeploymentConfig_][migrate-adc] | Moves any _AddonDeploymentConfig_ resources associated with the _Addon_'s _ManagedClusterAddon_ from the OLD Spoke to the NEW one.                                  |
+| [Migrate known _ConfigMap_][migrate-cm]              | Moves the _Addon_'s _ConfigMap_ if found, from the OLD Spoke to the NEW one.                                                                                        |
+| [Migrate addon's _ManagedClusterAddon_][migrate-mca] | Moves the _Addon_'s _ManagedClusterAddon_ if found, from the OLD Spoke to the NEW one. If the NEW one was already created by the Addon, the content will be merged. |
 
 [Go Back](../README.md#documentation)
 

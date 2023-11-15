@@ -41,7 +41,7 @@ func createAgent(ctx context.Context, kubeConfig *rest.Config, options *Options)
 
 	getter := utils.NewAddOnDeploymentConfigGetter(client)
 
-	return addonfactory.
+	agentAddon := addonfactory.
 		NewAgentAddonFactory(mcra.AddonName, fsys, "templates/agent").
 		WithConfigGVRs(utils.AddOnDeploymentConfigGVR).
 		WithGetValuesFuncs(
@@ -49,8 +49,14 @@ func createAgent(ctx context.Context, kubeConfig *rest.Config, options *Options)
 			// ManagedClusterAddOn's InstallNamespace
 			getTemplateValuesFunc(options),
 			addonfactory.GetAddOnDeploymentConfigValues(getter, loadDeploymentValuesFunc)).
-		WithAgentRegistrationOption(getRegistrationOptionFunc(ctx, kubeConfig)).
-		BuildTemplateAgentAddon()
+		WithAgentRegistrationOption(getRegistrationOptionFunc(ctx, kubeConfig))
+
+	// configurable support for installing the agent's ManagedClusterAddon automatically on all cluster namespaces
+	if options.InstallAllStrategy {
+		agentAddon.WithInstallStrategy(agent.InstallAllStrategy(options.InstallAllNamespace))
+	}
+
+	return agentAddon.BuildTemplateAgentAddon()
 }
 
 // getTemplateValuesFunc is used for building a function for generating values to be used in the Addon Agent templates.
