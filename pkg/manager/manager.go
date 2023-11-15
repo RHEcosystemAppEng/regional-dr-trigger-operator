@@ -31,6 +31,8 @@ type Options struct {
 	ServiceAccount           string
 	ConfigMapName            string
 	EnableValidation         bool
+	InstallAllStrategy       bool
+	InstallAllNamespace      string
 }
 
 // NewManager is used as a factory for creating a Manager instance with an Options instance.
