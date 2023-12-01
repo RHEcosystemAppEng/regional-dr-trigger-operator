@@ -26,7 +26,7 @@ type agentValues struct {
 	AgentImage       string
 }
 
-// deploymentValues i used for encapsulating template values extracted from the AddonDeploymentConfig.
+// deploymentValues is used for encapsulating template values extracted from the AddonDeploymentConfig.
 type deploymentValues struct {
 	AgentReplicas  int
 	AgentNamespace string
@@ -67,8 +67,9 @@ func getTemplateValuesFunc(options *Options) func(cluster *clusterv1.ManagedClus
 			SpokeName:        cluster.Name,
 			// namespace from ManagedClusterAddon defaults to 'open-cluster-management-agent-addon'
 			// this function should be called before loadDeploymentValuesFunc to allow this to be overridden
-			AgentNamespace: addon.Spec.InstallNamespace,
-			AgentImage:     options.AgentImage,
+			// TODO: UNCOMMENT THIS ONCE ACM SUPPORTS open-cluster-management.io/api v0.12.0
+			//AgentNamespace: addon.Spec.InstallNamespace,
+			AgentImage: options.AgentImage,
 		}
 
 		return addonfactory.StructToValues(values), nil
@@ -90,7 +91,9 @@ func loadDeploymentValuesFunc(config addonv1alpha1.AddOnDeploymentConfig) (addon
 	}
 	// namespace from AddOnDeploymentConfig is set to its default open-cluster-management-agent-addon, we don't want it
 	// to override the one set in ManagedClusterAddOn
-	if config.Spec.AgentInstallNamespace != "open-cluster-management-agent-addon" {
+	// TODO: UNCOMMENT THIS ONCE ACM SUPPORTS open-cluster-management.io/api v0.12.0
+	//if config.Spec.AgentInstallNamespace != "open-cluster-management-agent-addon" {
+	if true {
 		// this function should be called after getTemplateValuesFunc for this to override the one set in ManagedClusterAddOn
 		values.AgentNamespace = config.Spec.AgentInstallNamespace
 	}

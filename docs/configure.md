@@ -32,7 +32,8 @@ metadata:
   name: multicluster-resiliency-addon-deploy-config
   namespace: open-cluster-management
 spec:
-  agentInstallNamespace: open-cluster-management-agent-addon
+# agentInstallNamespace is not yet supported by acm 2.8
+#  agentInstallNamespace: open-cluster-management-agent-addon
   customizedVariables:
   - name: AgentReplicas
     value: "1"
