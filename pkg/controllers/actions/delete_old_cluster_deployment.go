@@ -2,7 +2,7 @@
 
 package actions
 
-// This file contains the action for deleting a ClusterDeployment from the OLD spoke.
+// This file contains the action for deleting the ClusterDeployment from the OLD spoke.
 
 import (
 	"context"

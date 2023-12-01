@@ -13,6 +13,7 @@ actions are preformed in order to switch the workload to the new cluster.
 |------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [Compare _ManagedCluster_ Resources][compare-mc]     | Copies labels and annotations from the OLD _MC_ to the NEW one, overriding only the _clusterset_ label. Deletes the OLD _MC_ when done.                             |
 | [Delete Old _ClusterDeployment_][delete-cd]          | Deletes the _ClusterDeployment_ from the OLD Spoke.                                                                                                                 |
+| [Delete Old _ResilientCluster_][delete-rc]           | Deletes the _ResilientCluster_ from the OLD Spoke.                                                                                                                  |
 | [Migrate known _AddonDeploymentConfig_][migrate-adc] | Moves any _AddonDeploymentConfig_ resources associated with the _Addon_'s _ManagedClusterAddon_ from the OLD Spoke to the NEW one.                                  |
 | [Migrate known _ConfigMap_][migrate-cm]              | Moves the _Addon_'s _ConfigMap_ if found, from the OLD Spoke to the NEW one.                                                                                        |
 | [Migrate addon's _ManagedClusterAddon_][migrate-mca] | Moves the _Addon_'s _ManagedClusterAddon_ if found, from the OLD Spoke to the NEW one. If the NEW one was already created by the Addon, the content will be merged. |
@@ -26,6 +27,7 @@ actions are preformed in order to switch the workload to the new cluster.
 <!--ACTIONS-->
 [compare-mc]: ../pkg/controllers/actions/compare_managed_cluster_and_delete_old.go
 [delete-cd]: ../pkg/controllers/actions/delete_old_cluster_deployment.go
+[delete-rc]: ../pkg/controllers/actions/delete_old_resilient_cluster.go
 [migrate-adc]: ../pkg/controllers/actions/migrate_addon_deployment_configs.go
 [migrate-cm]: ../pkg/controllers/actions/migrate_config_map.go
 [migrate-mca]: ../pkg/controllers/actions/migrate_managed_cluster_addon.go
