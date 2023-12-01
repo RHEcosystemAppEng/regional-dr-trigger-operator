@@ -53,7 +53,7 @@ func createAgent(ctx context.Context, kubeConfig *rest.Config, options *Options)
 
 	// configurable support for installing the agent's ManagedClusterAddon automatically on all cluster namespaces
 	if options.InstallAllStrategy {
-		agentAddon.WithInstallStrategy(agent.InstallAllStrategy(options.InstallAllNamespace))
+		agentAddon.WithInstallStrategy(agent.InstallByFilterFunctionStrategy(options.InstallAllNamespace, targetMcPredicate))
 	}
 
 	return agentAddon.BuildTemplateAgentAddon()
@@ -98,4 +98,11 @@ func loadDeploymentValuesFunc(config addonv1alpha1.AddOnDeploymentConfig) (addon
 		values.AgentNamespace = config.Spec.AgentInstallNamespace
 	}
 	return addonfactory.StructToValues(values), nil
+}
+
+// targetMcPredicate is used for filtering Managed Clusters as target for the Addon Agent. Currently, it returns false
+// if the cluster name is 'local_cluster', this is done to prevent the Addon Agent to from being installed for the
+// Standalone Cluster on the Hub.
+func targetMcPredicate(cluster *clusterv1.ManagedCluster) bool {
+	return cluster.Name != "local_cluster"
 }
