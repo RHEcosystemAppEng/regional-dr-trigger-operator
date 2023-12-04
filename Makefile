@@ -12,7 +12,7 @@ IMAGE_BUILDER ?= podman##@ Set a custom image builder if 'podman' is not availab
 IMAGE_REGISTRY ?= quay.io##@ Set the image registry for build and config, defaults to 'quay.io'
 IMAGE_NAMESPACE ?= ecosystem-appeng##@ Set the image namespace for build and config, defaults to 'ecosystem-appeng'
 IMAGE_NAME ?= multicluster-resiliency-addon##@ Set the image name for build and config, defaults to 'multicluster-resiliency-addon'
-IMAGE_TAG ?= devel##@ Set the image tag for build and config, defaults to 'devel'
+IMAGE_TAG ?= $(strip $(shell cat VERSION))##@ Set the image tag for build and config, defaults to content of the VERSION file
 FULL_IMAGE_NAME = $(strip $(IMAGE_REGISTRY)/$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG))
 
 ##########################################################
