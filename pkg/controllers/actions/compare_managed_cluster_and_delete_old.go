@@ -6,10 +6,9 @@ package actions
 
 import (
 	"context"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
-	"golang.org/x/exp/maps"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -27,6 +26,11 @@ func compareManagedClusterAndDeleteOld(ctx context.Context, options Options) {
 		return
 	}
 
+	// create patch object
+	mcPatch := &clusterv1.ManagedCluster{}
+	mcPatch.Annotations = oldMc.GetAnnotations()
+	mcPatch.Labels = oldMc.GetLabels()
+
 	// fetch the NEW ManagedCluster or break
 	newMc := &clusterv1.ManagedCluster{}
 	if err := options.Client.Get(ctx, types.NamespacedName{Name: options.NewSpoke}, newMc); err != nil {
@@ -34,20 +38,13 @@ func compareManagedClusterAndDeleteOld(ctx context.Context, options Options) {
 		return
 	}
 
-	// compare the NEW ManagedCluster with the OLD one or break
-	labels := newMc.GetLabels()
-	maps.Copy(labels, oldMc.GetLabels())
-	newMc.SetLabels(labels)
-
-	annotations := oldMc.GetAnnotations()
-	annotations[mcra.AnnotationCreatedBy] = mcra.AddonName
-	newMc.SetAnnotations(annotations)
-
-	if err := options.Client.Update(ctx, newMc); err != nil {
-		logger.Error(err, "failed updating new ManagedCluster", "new-spoke", options.NewSpoke)
+	// patch the NEW ManageCluster with object data from the OLD ManagedCluster
+	if err := options.Client.Patch(ctx, newMc, client.StrategicMergeFrom(mcPatch)); err != nil {
+		logger.Error(err, "failed patching new ManagedCluster", "new-spoke", options.NewSpoke)
 		return
 	}
 
+	// delete the OLD ManagedCluster
 	if err := options.Client.Delete(ctx, oldMc); err != nil {
 		logger.Error(err, "failed deleting old ManagedCluster", "old-spoke", options.OldSpoke)
 	}
