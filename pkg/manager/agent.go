@@ -104,5 +104,5 @@ func loadDeploymentValuesFunc(config addonv1alpha1.AddOnDeploymentConfig) (addon
 // if the cluster name is 'local_cluster', this is done to prevent the Addon Agent to from being installed for the
 // Standalone Cluster on the Hub.
 func targetMcPredicate(cluster *clusterv1.ManagedCluster) bool {
-	return cluster.Name != "local_cluster"
+	return cluster.Name != "local-cluster"
 }
