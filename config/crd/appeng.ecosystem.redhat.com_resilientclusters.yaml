@@ -49,7 +49,7 @@ spec:
                   at a specific time.
                 properties:
                   availability:
-                    description: ClustarAvailability is a bool representing whether
+                    description: ClusterAvailability is a bool representing whether
                       not the Spoke cluster is available. Use ClusterAvailable and
                       ClusterNotAvailable.
                     enum:
@@ -65,7 +65,7 @@ spec:
                   at a specific time.
                 properties:
                   availability:
-                    description: ClustarAvailability is a bool representing whether
+                    description: ClusterAvailability is a bool representing whether
                       not the Spoke cluster is available. Use ClusterAvailable and
                       ClusterNotAvailable.
                     enum:
@@ -81,7 +81,7 @@ spec:
                   at a specific time.
                 properties:
                   availability:
-                    description: ClustarAvailability is a bool representing whether
+                    description: ClusterAvailability is a bool representing whether
                       not the Spoke cluster is available. Use ClusterAvailable and
                       ClusterNotAvailable.
                     enum:

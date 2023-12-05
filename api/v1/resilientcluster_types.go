@@ -25,14 +25,14 @@ var (
 )
 
 type (
-	// ClustarAvailability is a bool representing whether not the Spoke cluster is available. Use ClusterAvailable and
+	// ClusterAvailability is a bool representing whether not the Spoke cluster is available. Use ClusterAvailable and
 	// ClusterNotAvailable.
-	ClustarAvailability string
+	ClusterAvailability string
 
 	// ClusterStatus represents a status of the Spoke cluster at a specific time.
 	ClusterStatus struct {
 		// +kubebuilder:validation:Enum=True;False
-		Availability ClustarAvailability `json:"availability,omitempty"`
+		Availability ClusterAvailability `json:"availability,omitempty"`
 		Time         metav1.Time         `json:"time,omitempty"`
 	}
 
@@ -67,8 +67,8 @@ type (
 )
 
 const (
-	ClusterAvailable    ClustarAvailability = "True"
-	ClusterNotAvailable ClustarAvailability = "False"
+	ClusterAvailable    ClusterAvailability = "True"
+	ClusterNotAvailable ClusterAvailability = "False"
 )
 
 // init is used for registering the Addon API types with the scheme previously configured with groupVersion.
