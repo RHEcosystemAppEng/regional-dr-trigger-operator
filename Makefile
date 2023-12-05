@@ -13,7 +13,6 @@ IMAGE_REGISTRY ?= quay.io##@ Set the image registry for build and config, defaul
 IMAGE_NAMESPACE ?= ecosystem-appeng##@ Set the image namespace for build and config, defaults to 'ecosystem-appeng'
 IMAGE_NAME ?= multicluster-resiliency-addon##@ Set the image name for build and config, defaults to 'multicluster-resiliency-addon'
 IMAGE_TAG ?= $(strip $(shell cat VERSION))##@ Set the image tag for build and config, defaults to content of the VERSION file
-FULL_IMAGE_NAME = $(strip $(IMAGE_REGISTRY)/$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG))
 
 ##########################################################
 ###### Create working directories (note .gitignore) ######
@@ -45,15 +44,26 @@ SPOKE_NAME ?= vp-pool-m2rdd##@ Set the name of the Spoke to install the addon ma
 COVERAGE_THRESHOLD ?= 60##@ Set the unit test code coverage threshold, defaults to '60'
 
 #########################
+###### Build times ######
+#########################
+BUILD_DATE = $(strip $(shell date +%FT%T))
+BUILD_TIMESTAMP = $(strip $(shell date -d "$(BUILD_DATE)" +%s))
+
+#########################
 ###### Build flags ######
 #########################
 COMMIT_HASH = $(strip $(shell git rev-parse --short HEAD))
-BUILD_DATE = $(strip $(shell date -u +"%Y-%m-%dT%H:%M:%SZ"))
 LDFLAGS=-ldflags="\
 -X 'github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version.tag=${IMAGE_TAG}' \
 -X 'github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version.commit=${COMMIT_HASH}' \
 -X 'github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version.date=${BUILD_DATE}' \
 "
+
+#########################
+###### Image names ######
+#########################
+FULL_IMAGE_NAME = $(strip $(IMAGE_REGISTRY)/$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG))
+FULL_IMAGE_NAME_UNIQUE = $(FULL_IMAGE_NAME)_$(COMMIT_HASH)_$(BUILD_TIMESTAMP)
 
 ####################################
 ###### Build and push project ######
@@ -67,6 +77,8 @@ build/image: ## Build the image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE
 	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_IMAGE_NAME) -f ./Containerfile
 
 build/image/push: build/image ## Build and push the image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG
+	$(IMAGE_BUILDER) tag $(FULL_IMAGE_NAME) $(FULL_IMAGE_NAME_UNIQUE)
+	$(IMAGE_BUILDER) push $(FULL_IMAGE_NAME_UNIQUE)
 	$(IMAGE_BUILDER) push $(FULL_IMAGE_NAME)
 
 ###########################################
