@@ -99,13 +99,19 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	logger.Info(fmt.Sprintf("cluster %s requires a new claim", rc.Name))
-	config, err := r.loadConfiguration(ctx, rc.Namespace)
+
+	managerNamespace, exist := os.LookupEnv("POD_NAMESPACE")
+	if !exist {
+		return ctrl.Result{}, fmt.Errorf("unable to load manager namespace from POD_NAMESPACE")
+	}
+
+	config, err := r.loadConfiguration(ctx, rc.Namespace, managerNamespace)
 	if err != nil {
 		logger.Error(err, "unable to load configuration")
 		return ctrl.Result{}, err
 	}
 
-	pool, err := r.loadClusterPool(ctx, config.HivePoolName)
+	pool, err := r.loadClusterPool(ctx, config.HivePoolName, managerNamespace)
 	if err != nil {
 		logger.Error(err, "unable to load hive pool")
 		return ctrl.Result{}, err
@@ -139,7 +145,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 // loadConfiguration will first attempt to load the configmap from the cluster-namespace, if failed, will load the one
 // from the manager namespace.
-func (r *ClusterReconciler) loadConfiguration(ctx context.Context, clusterNamespace string) (Config, error) {
+func (r *ClusterReconciler) loadConfiguration(ctx context.Context, clusterNamespace, managerNamespace string) (Config, error) {
 	logger := log.FromContext(ctx)
 
 	subject := types.NamespacedName{
@@ -155,11 +161,6 @@ func (r *ClusterReconciler) loadConfiguration(ctx context.Context, clusterNamesp
 	}
 
 	logger.Info("using config from manager namespace")
-	managerNamespace, exist := os.LookupEnv("POD_NAMESPACE")
-	if !exist {
-		return Config{}, fmt.Errorf("unable to load manager namespace from POD_NAMESPACE")
-	}
-
 	subject.Namespace = managerNamespace
 	// load configmap from manager namespace
 	if err := r.Client.Get(ctx, subject, cmap); err != nil {
@@ -169,11 +170,10 @@ func (r *ClusterReconciler) loadConfiguration(ctx context.Context, clusterNamesp
 	return configMapToConfig(cmap), nil
 }
 
-// loadClusterPool is used for loading a ClusterPool, the assumption is that the ClusterPool name and namespace are
-// identical.
-func (r *ClusterReconciler) loadClusterPool(ctx context.Context, poolName string) (*hivev1.ClusterPool, error) {
+// loadClusterPool is used for loading a ClusterPool from the manager's namespace.
+func (r *ClusterReconciler) loadClusterPool(ctx context.Context, poolName, managerNamespace string) (*hivev1.ClusterPool, error) {
 	subject := types.NamespacedName{
-		Namespace: poolName,
+		Namespace: managerNamespace,
 		Name:      poolName,
 	}
 
