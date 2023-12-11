@@ -11,7 +11,6 @@ import (
 	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
 	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/metrics"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,10 +29,6 @@ type ClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	Options
-}
-
-type Config struct {
-	HivePoolName string
 }
 
 // setupWithManager is used for setting up the controller named 'mcra-managed-cluster-cluster-controller' with the
@@ -105,7 +100,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("unable to load manager namespace from POD_NAMESPACE")
 	}
 
-	config, err := r.loadConfiguration(ctx, rc.Namespace, managerNamespace)
+	config, err := loadConfiguration(ctx, r.Client, r.ConfigMapName, rc.Namespace, managerNamespace)
 	if err != nil {
 		logger.Error(err, "unable to load configuration")
 		return ctrl.Result{}, err
@@ -143,33 +138,6 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-// loadConfiguration will first attempt to load the configmap from the cluster-namespace, if failed, will load the one
-// from the manager namespace.
-func (r *ClusterReconciler) loadConfiguration(ctx context.Context, clusterNamespace, managerNamespace string) (Config, error) {
-	logger := log.FromContext(ctx)
-
-	subject := types.NamespacedName{
-		Namespace: clusterNamespace,
-		Name:      r.ConfigMapName,
-	}
-
-	cmap := &corev1.ConfigMap{}
-	// return configmap from cluster namespace if available
-	if err := r.Client.Get(ctx, subject, cmap); err == nil {
-		logger.Info("using config from cluster namespace")
-		return configMapToConfig(cmap), nil
-	}
-
-	logger.Info("using config from manager namespace")
-	subject.Namespace = managerNamespace
-	// load configmap from manager namespace
-	if err := r.Client.Get(ctx, subject, cmap); err != nil {
-		return Config{}, err
-	}
-
-	return configMapToConfig(cmap), nil
-}
-
 // loadClusterPool is used for loading a ClusterPool from the manager's namespace.
 func (r *ClusterReconciler) loadClusterPool(ctx context.Context, poolName, managerNamespace string) (*hivev1.ClusterPool, error) {
 	subject := types.NamespacedName{
@@ -188,17 +156,6 @@ func (r *ClusterReconciler) loadClusterPool(ctx context.Context, poolName, manag
 func requiresNewClaim(rc *apiv1.ResilientCluster) bool {
 	return rc.Status.CurrentStatus.Availability != apiv1.ClusterAvailable &&
 		rc.Status.PreviousStatus.Availability == apiv1.ClusterAvailable
-}
-
-// configMapToConfig is used for extracting known keys from a ConfigMap and build a new Config from the extracted values.
-// currently we're only working with `hive_pool_name`, but this is where we can add more configuration values.
-func configMapToConfig(configMap *corev1.ConfigMap) Config {
-	config := Config{}
-	if poolName, found := configMap.Data["hive_pool_name"]; found {
-		config.HivePoolName = poolName
-	}
-
-	return config
 }
 
 // verifyPool is used for verifying a hivev1.ClusterPool is ok and a ClusterClaim can be made. Initial implementation is
