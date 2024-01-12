@@ -5,26 +5,6 @@ metadata:
   name: role
 rules:
 - apiGroups:
-  - ""
-  resources:
-  - configmaps
-  - events
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - addon.open-cluster-management.io
-  resources:
-  - addondeploymentconfigs
-  verbs:
-  - '*'
-- apiGroups:
   - addon.open-cluster-management.io
   resources:
   - clustermanagementaddons
@@ -70,30 +50,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - appeng.ecosystem.redhat.com
-  resources:
-  - resilientclusterclaimbinding
-  verbs:
-  - '*'
-- apiGroups:
-  - appeng.ecosystem.redhat.com
-  resources:
-  - resilientclusterclaimbinding/finalizer
-  verbs:
-  - '*'
-- apiGroups:
-  - appeng.ecosystem.redhat.com
-  resources:
-  - resilientclusters
-  verbs:
-  - '*'
-- apiGroups:
-  - appeng.ecosystem.redhat.com
-  resources:
-  - resilientclusters/finalizer
-  verbs:
-  - '*'
-- apiGroups:
   - authentication.k8s.io
   resources:
   - tokenreviews
@@ -128,11 +84,8 @@ rules:
   resources:
   - managedclusters
   verbs:
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - coordination.k8s.io
@@ -146,39 +99,14 @@ rules:
   - update
   - watch
 - apiGroups:
-  - hive.openshift.io
+  - ramendr.openshift.io
   resources:
-  - clusterclaims
+  - drplacementcontrols
   verbs:
-  - create
   - get
   - list
+  - patch
   - update
-  - watch
-- apiGroups:
-  - hive.openshift.io
-  resources:
-  - clusterclaims/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - hive.openshift.io
-  resources:
-  - clusterdeployments
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - watch
-- apiGroups:
-  - hive.openshift.io
-  resources:
-  - clusterpools
-  verbs:
-  - get
-  - list
-  - watch
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:

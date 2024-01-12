@@ -1,17 +1,12 @@
 // Copyright (c) 2023 Red Hat, Inc.
 
-package controllers
+package controller
 
 // This file hosts functions and types for instantiating the controllers as part of the Addon Manager on the Hub cluster.
 
 import (
 	"context"
 	"fmt"
-	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	apiv1 "github.com/rhecosystemappeng/multicluster-resiliency-addon/api/v1"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/controllers/reconcilers"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/controllers/webhooks"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
@@ -30,12 +25,10 @@ type Controllers struct {
 
 // Options is used for encapsulating the various options for configuring the controller run.
 type Options struct {
-	MetricAddr       string
-	LeaderElection   bool
-	ProbeAddr        string
-	ServiceAccount   string
-	ConfigMapName    string
-	EnableValidation bool
+	MetricAddr     string
+	LeaderElection bool
+	ProbeAddr      string
+	ServiceAccount string
 }
 
 // NewControllersWithOptions is used as a factory for creating a Controller instance with a given Options instance.
@@ -70,27 +63,19 @@ func (c *Controllers) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		return err
 	}
 
-	if err = reconcilers.Setup(mgr, reconcilers.Options{ConfigMapName: c.Options.ConfigMapName}); err != nil {
-		logger.Error(err, "failed setup the controllers")
+	reconciler := &AddonReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
+	if err = reconciler.SetupWithManager(ctx, mgr); err != nil {
+		logger.Error(err, "failed setup the reconciler")
 		return err
-	}
-
-	if c.Options.EnableValidation {
-		// load validation admission webhook for validating ResilientCluster crs
-		validatingWebhook := &webhooks.ValidateResilientCluster{Client: mgr.GetClient(), ServiceAccount: c.Options.ServiceAccount}
-		if err = validatingWebhook.SetupWebhookWithManager(mgr); err != nil {
-			logger.Error(err, "failed admission webhook setup")
-			return err
-		}
 	}
 
 	// configure health checks
 	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		logger.Error(err, "failed setup health check for the controllers manager")
+		logger.Error(err, "failed setup health check")
 		return err
 	}
 	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		logger.Error(err, "failed setup ready check for the controllers manager")
+		logger.Error(err, "failed setup ready check")
 		return err
 	}
 
@@ -100,21 +85,9 @@ func (c *Controllers) Run(ctx context.Context, kubeConfig *rest.Config) error {
 
 // installTypes is used for installing all the required types with a scheme.
 func installTypes(scheme *runtime.Scheme) error {
-	// the addon's own types
-	if err := apiv1.Install(scheme); err != nil {
-		return fmt.Errorf("failed installing the addon's types into the addon's scheme, %v", err)
-	}
 	// required for ManagedClusterAddon and AddonDeploymentConfig
 	if err := addonv1alpha1.Install(scheme); err != nil {
 		return fmt.Errorf("failed installing the framework types into the addon's scheme, %v", err)
-	}
-	// required for ClusterClaim and ClusterDeployment
-	if err := hivev1.AddToScheme(scheme); err != nil {
-		return fmt.Errorf("failed installing hive's types into the addon's scheme, %v", err)
-	}
-	// required for ConfigMap
-	if err := corev1.AddToScheme(scheme); err != nil {
-		return fmt.Errorf("failed installing the core types into the addon's scheme, %v", err)
 	}
 	// required for ManagedCluster
 	if err := clusterv1.Install(scheme); err != nil {

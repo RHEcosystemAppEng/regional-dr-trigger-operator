@@ -6,7 +6,7 @@ package agent
 
 import (
 	"context"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
+	mcra "github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"

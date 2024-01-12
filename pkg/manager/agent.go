@@ -7,7 +7,7 @@ package manager
 import (
 	"context"
 	"fmt"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
+	mcra "github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg"
 	"k8s.io/client-go/rest"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/agent"

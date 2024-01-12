@@ -7,7 +7,7 @@ package manager
 import (
 	"context"
 	"fmt"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/mcra"
+	mcra "github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -7,7 +7,7 @@ package manager
 import (
 	"context"
 	"embed"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/controllers"
+	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/controller"
 	"k8s.io/client-go/rest"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -29,8 +29,6 @@ type Options struct {
 	ControllerLeaderElection bool
 	AgentImage               string
 	ServiceAccount           string
-	ConfigMapName            string
-	EnableValidation         bool
 	InstallAllStrategy       bool
 	InstallAllNamespace      string
 }
@@ -68,13 +66,11 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		}
 	}()
 
-	ctrl := controllers.NewControllersWithOptions(&controllers.Options{
-		MetricAddr:       m.Options.ControllerMetricAddr,
-		ProbeAddr:        m.Options.ControllerProbeAddr,
-		LeaderElection:   m.Options.ControllerLeaderElection,
-		ServiceAccount:   m.Options.ServiceAccount,
-		ConfigMapName:    m.Options.ConfigMapName,
-		EnableValidation: m.Options.EnableValidation,
+	ctrl := controller.NewControllersWithOptions(&controller.Options{
+		MetricAddr:     m.Options.ControllerMetricAddr,
+		ProbeAddr:      m.Options.ControllerProbeAddr,
+		LeaderElection: m.Options.ControllerLeaderElection,
+		ServiceAccount: m.Options.ServiceAccount,
 	})
 
 	// blocking

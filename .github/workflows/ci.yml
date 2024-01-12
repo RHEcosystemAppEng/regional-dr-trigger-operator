@@ -10,6 +10,9 @@ on:
     branches:
       - main
 
+env:
+  GO_VER: "1.20.13"
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -21,8 +24,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: stable
-          check-latest: true
+          go-version: ${{ env.GO_VER }}
 
       - name: Run gofmt
         run: go fmt ./...
@@ -49,8 +51,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v4
         with:
-          go-version: stable
-          check-latest: true
+          go-version: ${{ env.GO_VER }}
 
       - name: Run unit tests
         run: make test

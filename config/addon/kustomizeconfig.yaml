@@ -4,8 +4,6 @@ namePrefix:
     path: metadata/name
   - kind: AddOnDeploymentConfig
     path: metadata/name
-  - kind: ConfigMap
-    path: metadata/name
 
 namespace:
 # set namespace for default configuration for ClusterManagementAddOn
