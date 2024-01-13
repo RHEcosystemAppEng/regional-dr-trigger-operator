@@ -1,14 +1,11 @@
-# Look in the entire `config` repo for #[METRICS_PROXY], #[PROMETHEUS], #[WEBHOOK], and #[CERT_MANAGER] for controlling
-# specific components. (No, the Component kind won't fit better).
+# Look for #[METRICS_PROXY] or #[PROMETHEUS] for controlling components.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../crd
   - ../rbac
   - ../addon
   - ../metrics #[METRICS_PROXY]
   - ../prometheus #[PROMETHEUS]
-  - ../webhook #[WEBHOOK]
 commonLabels:
   app.kubernetes.io/part-of: multicluster-resiliency-addon
 # this breaks for devel versions
@@ -22,12 +19,6 @@ replicas:
   - name: manager
     count: 1
 replacements:
-  - path: replacements/service_account_name_as_arg_to_deployment.yaml
   - path: replacements/prometheus_service_monitor_selection.yaml #[PROMETHEUS]
-  - path: replacements/validation_webhook_cert_secret_in_depolyment_volumes.yaml #[WEBHOOK]
 patches:
   - path: patches/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
-  - path: patches/addon_manager_validating_rstc_webhook.yaml #[WEBHOOK]
-  - target:
-      kind: Deployment
-    path: patches/enable_validation_webhook_as_arg_to_deployment.yaml #[WEBHOOK]

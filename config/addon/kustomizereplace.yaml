@@ -11,19 +11,6 @@
       options:
         delimiter: =
         index: 1
-# set the config map name as an argument to deployment
-# target text before replacement: '--configmap-name=config'
-- source:
-    fieldPath: metadata.name
-    kind: ConfigMap
-  targets:
-    - fieldPaths:
-        - spec.template.spec.containers.[name=manager].args.3
-      select:
-        kind: Deployment
-      options:
-        delimiter: =
-        index: 1
 # reference the AddOnDeploymentConfig in the ClusterManagementAddOn
 - source:
     fieldPath: metadata.name

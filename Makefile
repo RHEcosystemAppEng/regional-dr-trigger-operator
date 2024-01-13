@@ -36,6 +36,7 @@ BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not 
 BIN_ACTIONLINT ?= $(LOCALBIN)/actionlint##@ Set custom 'actionlint', if not supplied will install latest in ./bin
 BIN_AWK ?= awk##@ Set a custom 'awk' binary path if not in PATH
 BIN_OC ?= oc##@ Set a custom 'oc' binary path if not in PATH
+BIN_GO ?= go##@ Set a custom 'go' binary path if not in PATH (useful for multi versions environment)
 
 ###############################
 ###### Various variables ######
@@ -68,9 +69,12 @@ FULL_IMAGE_NAME_UNIQUE = $(FULL_IMAGE_NAME)_$(COMMIT_HASH)_$(BUILD_TIMESTAMP)
 ####################################
 ###### Build and push project ######
 ####################################
-.PHONY: build
-build: $(LOCALBUILD) ## Build the project as a binary in ./build
-	go build $(LDFLAGS) -o $(LOCALBUILD)/mcra ./main.go
+.PHONY: tidy
+tidy: ## Run go mod tidy
+	$(BIN_GO) mod tidy
+
+build: $(LOCALBUILD) tidy ## Build the project as a binary in ./build
+	$(BIN_GO) build $(LDFLAGS) -o $(LOCALBUILD)/mcra ./main.go
 
 .PHONY: build/image
 build/image: ## Build the image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG
@@ -84,18 +88,9 @@ build/image/push: build/image ## Build and push the image, customized with IMAGE
 ###########################################
 ###### Code and Manifests generation ######
 ###########################################
-generate/all: generate/manifests generate/code ## Generate both the code and the manifests
-
 .PHONY: generate/manifests
 generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the manifest files
-	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controllers/reconcilers/..."
-	$(BIN_CONTROLLER_GEN) crd paths="./api/..."
-	$(BIN_CONTROLLER_GEN) webhook paths="./pkg/controllers/webhooks/..."
-
-.PHONY: generate/code
-generate/code: $(BIN_CONTROLLER_GEN) ## Generate API boiler-plate code
-	rm -rf ./api/**/zz_generated.deepcopy.go
-	$(BIN_CONTROLLER_GEN) object:headerFile="hack/header.txt" paths="./api/..."
+	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controller/..."
 
 ########################################
 ###### Deploy and Apply resources ######
@@ -129,13 +124,13 @@ addon/uninstall: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon agent for 
 ###########################
 .PHONY: test
 test: ## Run all unit tests
-	go test -v ./...
+	$(BIN_GO) test -v ./...
 
 .PHONY: test/cov
 test/cov: $(BIN_GO_TEST_COVERAGE) ## Run all unit tests and print coverage report, use the COVERAGE_THRESHOLD var for setting threshold
-	go test -failfast -coverprofile=cov.out -v ./...
-	go tool cover -func=cov.out
-	go tool cover -html=cov.out -o cov.html
+	$(BIN_GO) test -failfast -coverprofile=cov.out -v ./...
+	$(BIN_GO) tool cover -func=cov.out
+	$(BIN_GO) tool cover -html=cov.out -o cov.html
 	$(BIN_GO_TEST_COVERAGE) -p cov.out -k 0 -t $(COVERAGE_THRESHOLD)
 
 .PHONY: test/mut
@@ -149,7 +144,7 @@ lint/all: lint/code lint/ci lint/containerfile ## Lint the entire project (code,
 
 .PHONY: lint/code
 lint/code: $(BIN_GOLINTCI) ## Lint the code
-	go fmt ./...
+	$(BIN_GO) fmt ./...
 	$(BIN_GOLINTCI) run
 
 .PHONY: lint/ci
@@ -196,22 +191,22 @@ help: verify/tools/awk ## Show this help message
 ###### Install required tools ######
 ####################################
 $(BIN_KUSTOMIZE):
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kustomize/kustomize/v5@latest
+	GOBIN=$(LOCALBIN) $(BIN_GO) install sigs.k8s.io/kustomize/kustomize/v5@latest
 
 $(BIN_CONTROLLER_GEN):
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+	GOBIN=$(LOCALBIN) $(BIN_GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 
 $(BIN_GREMLINS):
-	GOBIN=$(LOCALBIN) go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+	GOBIN=$(LOCALBIN) $(BIN_GO) install github.com/go-gremlins/gremlins/cmd/gremlins@latest
 
 $(BIN_GO_TEST_COVERAGE):
-	GOBIN=$(LOCALBIN) go install github.com/vladopajic/go-test-coverage/v2@latest
+	GOBIN=$(LOCALBIN) $(BIN_GO) install github.com/vladopajic/go-test-coverage/v2@latest
 
 $(BIN_GOLINTCI):
-	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	GOBIN=$(LOCALBIN) $(BIN_GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 $(BIN_ACTIONLINT): # recommendation: manually install shellcheck and verify it's on your PATH, it will be picked up by actionlint
-	GOBIN=$(LOCALBIN) go install github.com/rhysd/actionlint/cmd/actionlint@latest
+	GOBIN=$(LOCALBIN) $(BIN_GO) install github.com/rhysd/actionlint/cmd/actionlint@latest
 
 ######################################
 ###### Verify tools availablity ######

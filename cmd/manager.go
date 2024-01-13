@@ -24,9 +24,6 @@ func init() {
 	mgrCmd.Flags().StringVar(&mgr.Options.ControllerProbeAddr, "controller-probe-address", ":8081", "TODO")
 	mgrCmd.Flags().BoolVar(&mgr.Options.ControllerLeaderElection, "controller-leader-election", false, "TODO")
 	mgrCmd.Flags().StringVar(&mgr.Options.AgentImage, "agent-image", "", "TODO")
-	mgrCmd.Flags().StringVar(&mgr.Options.ServiceAccount, "service-account", "", "TODO")
-	mgrCmd.Flags().StringVar(&mgr.Options.ConfigMapName, "configmap-name", "", "TODO")
-	mgrCmd.Flags().BoolVar(&mgr.Options.EnableValidation, "enable-validation-webhook", false, "TODO")
 	mgrCmd.Flags().BoolVar(&mgr.Options.InstallAllStrategy, "install-all-strategy", false, "TODO")
 	mgrCmd.Flags().StringVar(&mgr.Options.InstallAllNamespace, "install-all-namespace", "open-cluster-management-agent-addon", "TODO - depends on install-all-strategy")
 

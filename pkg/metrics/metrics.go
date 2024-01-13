@@ -9,41 +9,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-// vector labels for the metrics
 const (
-	LabelSpokeName    = "spoke_name"
-	LabelClaimName    = "claim_name"
-	LabelPoolName     = "pool_name"
-	LabelOldSpokeName = "old_spoke_name"
-	LabelNewSpokeName = "new_spoke_name"
+	DRClusterName     = "dr_cluster_name"
+	DRControlName     = "dr_control_name"
+	DRApplicationName = "dr_application_name"
 )
 
-var ResilientSpokeNotAvailable = *prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "resilient_spoke_not_available_count",
-	Help: "Count times the Resilient Spoke cluster was reported not available",
-}, []string{LabelSpokeName})
+var DRClusterNotAvailable = *prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "dr_cluster_not_available_count",
+	Help: "Counter for DR clusters identified as not available",
+}, []string{DRClusterName})
 
-var ResilientSpokeAvailable = *prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "resilient_spoke_available_count",
-	Help: "Count times the Resilient Spoke cluster was reported available",
-}, []string{LabelSpokeName})
-
-var NewClusterClaimCreated = *prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "new_cluster_claim_created",
-	Help: "Count the times we created a new ClusterClaim for Hive",
-}, []string{LabelPoolName, LabelClaimName, LabelOldSpokeName})
-
-var NewSpokeReady = *prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "new_spoke_ready",
-	Help: "Count the time we got a new ready cluster",
-}, []string{LabelOldSpokeName, LabelNewSpokeName})
+var DRApplicationFailover = *prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "dr_application_failover_count",
+	Help: "Counter for DR application failover performed",
+}, []string{DRClusterName, DRControlName, DRApplicationName})
 
 // init is registering the metrics with K8S registry.
 func init() {
 	metrics.Registry.MustRegister(
-		ResilientSpokeNotAvailable,
-		ResilientSpokeAvailable,
-		NewClusterClaimCreated,
-		NewSpokeReady,
+		DRClusterNotAvailable,
+		DRApplicationFailover,
 	)
 }
