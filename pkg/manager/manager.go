@@ -28,7 +28,6 @@ type Options struct {
 	ControllerProbeAddr      string
 	ControllerLeaderElection bool
 	AgentImage               string
-	ServiceAccount           string
 	InstallAllStrategy       bool
 	InstallAllNamespace      string
 }
@@ -66,11 +65,10 @@ func (m *Manager) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		}
 	}()
 
-	ctrl := controller.NewControllersWithOptions(&controller.Options{
+	ctrl := controller.NewControllerWithOptions(&controller.Options{
 		MetricAddr:     m.Options.ControllerMetricAddr,
 		ProbeAddr:      m.Options.ControllerProbeAddr,
 		LeaderElection: m.Options.ControllerLeaderElection,
-		ServiceAccount: m.Options.ServiceAccount,
 	})
 
 	// blocking

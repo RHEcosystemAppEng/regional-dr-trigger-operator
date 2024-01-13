@@ -2,7 +2,7 @@
 
 package controller
 
-// This file hosts functions and types for instantiating the controllers as part of the Addon Manager on the Hub cluster.
+// This file hosts functions and types for instantiating the controller as part of the Addon Manager on the Hub cluster.
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
-// Controllers is a receiver representing the Addon controller. It encapsulates the Controller Options which will be used
+// Controller is a receiver representing the Addon controller. It encapsulates the Controller Options which will be used
 // to configure the controller run. Use NewControllerWithOptions for instantiation.
-type Controllers struct {
+type Controller struct {
 	Options *Options
 }
 
@@ -28,17 +28,16 @@ type Options struct {
 	MetricAddr     string
 	LeaderElection bool
 	ProbeAddr      string
-	ServiceAccount string
 }
 
-// NewControllersWithOptions is used as a factory for creating a Controller instance with a given Options instance.
-func NewControllersWithOptions(options *Options) Controllers {
-	return Controllers{Options: options}
+// NewControllerWithOptions is used as a factory for creating a Controller instance with a given Options instance.
+func NewControllerWithOptions(options *Options) Controller {
+	return Controller{Options: options}
 }
 
 // Run is used for running the Addon controller. It takes a context and the kubeconfig for the Hub it runs on. This
 // function blocks while running the controller's manager.
-func (c *Controllers) Run(ctx context.Context, kubeConfig *rest.Config) error {
+func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	logger := log.FromContext(ctx)
 
 	// create and configure the scheme
@@ -59,23 +58,23 @@ func (c *Controllers) Run(ctx context.Context, kubeConfig *rest.Config) error {
 		BaseContext:            func() context.Context { return ctx },
 	})
 	if err != nil {
-		logger.Error(err, "failed creating the controllers manager")
+		logger.Error(err, "failed creating k8s manager")
 		return err
 	}
 
 	reconciler := &AddonReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
 	if err = reconciler.SetupWithManager(ctx, mgr); err != nil {
-		logger.Error(err, "failed setup the reconciler")
+		logger.Error(err, "failed setting up the reconciler")
 		return err
 	}
 
 	// configure health checks
 	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		logger.Error(err, "failed setup health check")
+		logger.Error(err, "failed setting up health check")
 		return err
 	}
 	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		logger.Error(err, "failed setup ready check")
+		logger.Error(err, "failed setting up ready check")
 		return err
 	}
 

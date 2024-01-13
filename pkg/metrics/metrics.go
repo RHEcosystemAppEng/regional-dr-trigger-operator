@@ -16,13 +16,13 @@ const (
 )
 
 var DRClusterNotAvailable = *prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "resilient_spoke_not_available_count",
-	Help: "Count times the Resilient Spoke cluster was reported not available",
+	Name: "dr_cluster_not_available_count",
+	Help: "Counter for DR clusters identified as not available",
 }, []string{DRClusterName})
 
 var DRApplicationFailover = *prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "resilient_spoke_application_failover_count",
-	Help: "Count times the Resilient Spoke Application failed over",
+	Name: "dr_application_failover_count",
+	Help: "Counter for DR application failover performed",
 }, []string{DRClusterName, DRControlName, DRApplicationName})
 
 // init is registering the metrics with K8S registry.
