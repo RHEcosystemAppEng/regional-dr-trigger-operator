@@ -7,6 +7,12 @@ rules:
 - apiGroups:
   - addon.open-cluster-management.io
   resources:
+  - addondeploymentconfigs
+  verbs:
+  - '*'
+- apiGroups:
+  - addon.open-cluster-management.io
+  resources:
   - clustermanagementaddons
   verbs:
   - get

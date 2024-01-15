@@ -56,6 +56,7 @@ func (r *AddonReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager
 // +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons/status,verbs=update;patch
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 // +kubebuilder:rbac:groups=ramendr.openshift.io,resources=drplacementcontrols,verbs=get;list;update;patch
+// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=addondeploymentconfigs,verbs=*
 
 // Reconcile is watching ManagedClusters and will trigger a DRPlacementControl failover. Note, not eligible
 // ManagedClusters for failover. i.e., the cluster is not accepted by the hub, hasn't joined the hub, or is available.
