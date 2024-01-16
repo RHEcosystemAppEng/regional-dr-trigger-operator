@@ -18,6 +18,7 @@ kind: ManagedClusterAddOn
 metadata:
   name: multicluster-resiliency-addon
   namespace: "<managed-cluster-name-goes-here>"
+spec: {}
 ```
 
 ## Documentation
