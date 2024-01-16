@@ -1,9 +1,0 @@
-namespace: openshift-monitoring
-namePrefix: multicluster-resiliency-addon-
-resources:
-  - servicemonitor.yaml
-  - role.yaml
-  - rolebinding.yaml
-labels:
-  - pairs:
-      app.kubernetes.io/component: metrics

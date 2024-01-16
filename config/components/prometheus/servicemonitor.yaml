@@ -16,4 +16,4 @@ spec:
       - replace-me
   selector:
     matchLabels:
-      app.kubernetes.io/part-of: multicluster-resiliency-addon
+      app.kubernetes.io/part-of: regional-dr-trigger-operator

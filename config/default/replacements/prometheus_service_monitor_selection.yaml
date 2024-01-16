@@ -1,9 +1,0 @@
-# reference the deployment namespace in the service monitor selector
-- source:
-    fieldPath: metadata.namespace
-    kind: Deployment
-  targets:
-    - fieldPaths:
-        - spec.namespaceSelector.matchNames.0
-      select:
-        kind: ServiceMonitor
