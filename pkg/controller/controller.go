@@ -7,6 +7,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	ramenv1alpha1 "github.com/ramendr/ramen/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
@@ -63,7 +64,7 @@ func (c *Controller) Run(ctx context.Context, kubeConfig *rest.Config) error {
 	}
 
 	reconciler := &AddonReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
-	if err = reconciler.SetupWithManager(ctx, mgr); err != nil {
+	if err = reconciler.SetupWithManager(mgr); err != nil {
 		logger.Error(err, "failed setting up the reconciler")
 		return err
 	}
@@ -91,6 +92,10 @@ func installTypes(scheme *runtime.Scheme) error {
 	// required for ManagedCluster
 	if err := clusterv1.Install(scheme); err != nil {
 		return fmt.Errorf("failed installing ocm's types into the addon's scheme, %v", err)
+	}
+	// required for DRPlacementControl
+	if err := ramenv1alpha1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed installing ramen's types into the addon's scheme, %v", err)
 	}
 	return nil
 }
