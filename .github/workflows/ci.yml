@@ -73,5 +73,5 @@ jobs:
           path: /home/runner/.local/share/containers/storage/
           key: ${{ runner.os }}-image-${{ hashFiles('**/Containerfile') }}
 
-      - name: Build the image
-        run: make build/image
+      - name: Build the operator image
+        run: make build/operator-image
