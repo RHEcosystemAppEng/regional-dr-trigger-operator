@@ -17,7 +17,7 @@ const (
 
 var DRApplicationFailover = *prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name: "dr_application_failover_count",
-	Help: "Counter for DR application failover processes initiated",
+	Help: "Counter for DR Applications failover initiated by the Regional DR Trigger Operator",
 }, []string{DRClusterName, DRControlName, DRApplicationName})
 
 // init is registering the metrics with K8S registry.
