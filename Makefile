@@ -68,18 +68,16 @@ FULL_OPERATOR_IMAGE_NAME_UNIQUE = $(FULL_OPERATOR_IMAGE_NAME)_$(COMMIT_HASH)_$(B
 ####################################
 ###### Build and push project ######
 ####################################
-.PHONY: tidy
-build/tidy: ## Run go mod tidy
+.PHONY: build build/operator
+build build/operator: $(LOCALBUILD) ## Build the project as a binary in ./build
 	$(BIN_GO) mod tidy
-
-build: $(LOCALBUILD) build/tidy ## Build the project as a binary in ./build
 	$(BIN_GO) build $(LDFLAGS) -o $(LOCALBUILD)/rdrtrigger ./main.go
 
-.PHONY: build/operator-image
-build/operator-image: ## Build the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_OPERATOR_NAME, and IMAGE_OPERATOR_TAG
+.PHONY: build/operator/image
+build/operator/image: ## Build the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_OPERATOR_NAME, and IMAGE_OPERATOR_TAG
 	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_OPERATOR_IMAGE_NAME) -f ./Containerfile
 
-build/operator-image/push: build/operator-image ## Build and push the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_OPERATOR_NAME, and IMAGE_OPERATOR_TAG
+build/operator/image/push: build/operator/image ## Build and push the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_OPERATOR_NAME, and IMAGE_OPERATOR_TAG
 	$(IMAGE_BUILDER) tag $(FULL_OPERATOR_IMAGE_NAME) $(FULL_OPERATOR_IMAGE_NAME_UNIQUE)
 	$(IMAGE_BUILDER) push $(FULL_OPERATOR_IMAGE_NAME_UNIQUE)
 	$(IMAGE_BUILDER) push $(FULL_OPERATOR_IMAGE_NAME)
@@ -91,16 +89,16 @@ build/operator-image/push: build/operator-image ## Build and push the operator i
 generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the manifest files
 	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controller/..."
 
-###########################################
-###### Deploy and Apply the operator ######
-###########################################
-operator/deploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Deploy the Regional DR Trigger Operator
+##############################################
+###### Deploy and Undeploy the operator ######
+##############################################
+deploy/operator: $(BIN_KUSTOMIZE) verify/tools/oc ## Deploy the Regional DR Trigger Operator
 	cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
 	cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
 	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) apply -f -
 	mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
 
-operator/undeploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Undeploy the Regional DR Trigger Operator
+undeploy/operator: $(BIN_KUSTOMIZE) verify/tools/oc ## Undeploy the Regional DR Trigger Operator
 	cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
 	cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
 	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) delete --ignore-not-found -f -
@@ -127,12 +125,10 @@ test/mut: $(BIN_GREMLINS) ## Run mutation tests
 ###########################
 ###### Lint codebase ######
 ###########################
-lint: lint/code
-
 lint/all: lint/code lint/ci lint/containerfile ## Lint the entire project (code, ci, containerfile)
 
-.PHONY: lint/code
-lint/code: $(BIN_GOLINTCI) ## Lint the code
+.PHONY: lint lint/code
+lint lint/code: $(BIN_GOLINTCI) ## Lint the code
 	$(BIN_GO) fmt ./...
 	$(BIN_GOLINTCI) run
 
@@ -166,7 +162,7 @@ help: verify/tools/awk ## Show this help message
 			SORTED = "sort";\
             print "\033[1;32mAvailable Targets\033[0m"}\
 		/^(\s|[a-zA-Z_0-9-]|\/)+:.*?##/ {\
-			if($$0 ~ /targets/)\
+			if($$0 ~ /deploy/)\
 				printf "\t\033[1;36m%-35s \033[0;33m%s\033[0m\n", $$1, $$2 | SORTED;\
 			else\
 				printf "\t\033[1;36m%-35s \033[0;37m%s\033[0m\n", $$1, $$2 | SORTED; }\
