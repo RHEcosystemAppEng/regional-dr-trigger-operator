@@ -5,7 +5,7 @@ metadata:
   name: role
 rules:
 - apiGroups:
-  - '*'
+  - ""
   resources:
   - events
   verbs:
