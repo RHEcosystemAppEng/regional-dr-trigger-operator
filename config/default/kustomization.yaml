@@ -1,24 +1,33 @@
-# Look for #[METRICS_PROXY] or #[PROMETHEUS] for controlling components.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
+# if changing the namespace -> change in config/components/prometheus/kustomization.yaml
+namespace: open-cluster-management
+namePrefix: regional-dr-trigger-
+
 resources:
   - ../rbac
-  - ../addon
-  - ../metrics #[METRICS_PROXY]
-  - ../prometheus #[PROMETHEUS]
-commonLabels:
-  app.kubernetes.io/part-of: multicluster-resiliency-addon
-# this breaks for devel versions
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: rdrtrigger-image
+    newName: rdrtrigger-image
+    newTag: replace-me
+
 #buildMetadata:
 #  - managedByLabel
+
 labels:
-  - pairs:
-      app.kubernetes.io/managed-by: kustomize
-    includeTemplates: true
+  - includeTemplates: true
+    includeSelectors: true
+    pairs:
+      app.kubernetes.io/part-of: regional-dr-trigger-operator
+
 replicas:
-  - name: manager
-    count: 1
-replacements:
-  - path: replacements/prometheus_service_monitor_selection.yaml #[PROMETHEUS]
-patches:
-  - path: patches/addon_manager_auth_proxy.yaml #[METRICS_PROXY]
+  - count: 1
+    name: operator
+
+components:
+  - ../components/prometheus
+  - ../components/metrics_proxy

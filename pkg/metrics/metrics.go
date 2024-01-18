@@ -15,20 +15,12 @@ const (
 	DRApplicationName = "dr_application_name"
 )
 
-var DRClusterNotAvailable = *prometheus.NewCounterVec(prometheus.CounterOpts{
-	Name: "dr_cluster_not_available_count",
-	Help: "Counter for DR clusters identified as not available",
-}, []string{DRClusterName})
-
 var DRApplicationFailover = *prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name: "dr_application_failover_count",
-	Help: "Counter for DR application failover performed",
+	Help: "Counter for DR application failover processes initiated",
 }, []string{DRClusterName, DRControlName, DRApplicationName})
 
 // init is registering the metrics with K8S registry.
 func init() {
-	metrics.Registry.MustRegister(
-		DRClusterNotAvailable,
-		DRApplicationFailover,
-	)
+	metrics.Registry.MustRegister(DRApplicationFailover)
 }

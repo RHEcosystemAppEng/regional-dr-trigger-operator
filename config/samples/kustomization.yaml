@@ -1,5 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-namespace: replace-me-with-cluster-namespace
-resources:
-  - managedclusteraddon.yaml

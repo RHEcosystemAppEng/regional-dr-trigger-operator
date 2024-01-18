@@ -1,7 +1,0 @@
-namespace: open-cluster-management
-namePrefix: multicluster-resiliency-addon-
-resources:
-  - service.yaml
-labels:
-  - pairs:
-      app.kubernetes.io/component: metrics

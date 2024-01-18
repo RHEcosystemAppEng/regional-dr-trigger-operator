@@ -2,19 +2,18 @@
 
 package controller
 
-// This file hosts the AddonReconciler implementation registering for the framework's ManagedClusterAddOn CRs.
+// This file hosts the DRTriggerReconciler implementation registering for ManagedCluster CRs and triggering a failover.
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	ramenv1alpha1 "github.com/ramendr/ramen/api/v1alpha1"
-	mcra "github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/metrics"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	"regional-dr-trigger-operator/pkg/metrics"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -23,56 +22,39 @@ import (
 // okToFailoverStates is a fixed array listing the state a DRPlacementControl needs to be in for us to initiate a failover.
 var okToFailoverStates = [...]ramenv1alpha1.DRState{ramenv1alpha1.Deploying, ramenv1alpha1.Deployed, ramenv1alpha1.Relocated}
 
-// AddonReconciler is a receiver representing the MultiCluster-Resiliency-Addon operator reconciler for
-// ManagedClusterAddOn CRs.
-type AddonReconciler struct {
+// DRTriggerReconciler is a receiver representing the DRTriggerOperator reconciler for ManagedCluster CRs.
+type DRTriggerReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-// SetupWithManager is used for setting up the controller named 'mcra-addon-controller' with the manager. Using
-// Predicates for filtering, only accepting ManagedClusterAddon with the target annotation key
-// 'multicluster-resiliency-addon/dr-controller', with a value pointing to a DRPlacementCluster for failing over.
-func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
+// SetupWithManager is used for setting up the controller. Using Predicates for filtering, only accepting
+// ManagedCluster eligible for failing over.
+func (r *DRTriggerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		Named("mcra-addon-controller").
+		Named("regional-dr-trigger-controller").
 		For(&clusterv1.ManagedCluster{}).
-		WithEventFilter(verifyManagedCluster(addonInstalled(mcra.AddonName))).
 		WithEventFilter(verifyManagedCluster(acceptedByHub())).
 		WithEventFilter(verifyManagedCluster(joinedHub())).
 		WithEventFilter(verifyManagedCluster(notAvailable())).
 		Complete(r)
 }
 
-// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;delete;patch
-// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch
-// +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings,verbs=get;list;watch;create;update;delete
-// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=get;create
-// +kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests;certificatesigningrequests/approval,verbs=get;list;watch;create;update
-// +kubebuilder:rbac:groups=certificates.k8s.io,resources=signers,verbs=approve
-// +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;list;watch;update;delete;patch
-// +kubebuilder:rbac:groups=work.open-cluster-management.io,resources=manifestworks,verbs=create;update;get;list;watch;delete;deletecollection;patch
-// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=clustermanagementaddons,verbs=get;list;watch
-// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=clustermanagementaddons/finalizers,verbs=update
-// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=clustermanagementaddons/status,verbs=update;patch
-// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons,verbs=get;list;watch
-// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons,verbs=get;list;watch;create;update;delete
-// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons/finalizers,verbs=update
-// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=managedclusteraddons/status,verbs=update;patch
-// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
-// +kubebuilder:rbac:groups=ramendr.openshift.io,resources=drplacementcontrols,verbs=*
-// +kubebuilder:rbac:groups=addon.open-cluster-management.io,resources=addondeploymentconfigs,verbs=*
+// +kubebuilder:rbac:groups="*",resources=events,verbs=create
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;update
+// +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;watch;list
+// +kubebuilder:rbac:groups=ramendr.openshift.io,resources=drplacementcontrols,verbs=get;watch;list;patch
 
 // Reconcile is watching ManagedClusters and will trigger a DRPlacementControl failover. Note, not eligible
-// ManagedClusters for failover. i.e., the cluster is not accepted by the hub, hasn't joined the hub, or is available.
-func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// events for failover. i.e., the cluster is not accepted by the hub, hasn't joined the hub, or is available. // Are
+// filtered out by event filtering Predicates.
+func (r *DRTriggerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	// the name in the request is the managed cluster name and cluster-namespace name.
 	mcName := req.Name
 
-	metrics.DRClusterNotAvailable.WithLabelValues(mcName).Inc()
-
+	// fetch all DRPlacementControl in the Hub Cluster
 	drControls := &ramenv1alpha1.DRPlacementControlList{}
 	if err := r.Client.List(ctx, drControls); err != nil {
 		logger.Error(err, "failed to fetch DRPlacementControlsList")
@@ -80,40 +62,23 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	failuresFound := false
+	// iterate over DRPlacementControls and cherry-pick ones that belongs to the current Managed Cluster
 	for _, drControl := range drControls.Items {
-		// check if the current dr-control belongs to the managed cluster reported not available
+		// check if the current DRPlacementControl runs for the triggering ManagedCluster
 		if drControl.Status.PreferredDecision.ClusterName == mcName {
-			// check if the current dr-control phase is ok for failing over
-			if isPhaseOkForFailover(drControl) {
-				drControlSubject := types.NamespacedName{Namespace: drControl.Namespace, Name: drControl.Name}
-
-				// check if the peer is ready
-				if meta.IsStatusConditionFalse(drControl.Status.Conditions, ramenv1alpha1.ConditionPeerReady) {
-					logger.Error(
-						fmt.Errorf("attempting to failover %s, peer not ready", drControlSubject.String()),
-						"peer not ready")
-					return ctrl.Result{Requeue: true}, nil
+			// check if a failover instruction was already recorded
+			if drControl.Spec.Action != ramenv1alpha1.ActionFailover {
+				// check if the DRPlacementControl is in a phase suitable for a failover, i.e. Deployed (yes) | Initiating (no)
+				if isPhaseOkForFailover(drControl) {
+					// patch DRPlacementControl and initiate a failover process
+					if err := r.patchDRPlacementControl(ctx, drControl, ramenv1alpha1.ActionFailover); err != nil {
+						logger.Error(err, fmt.Sprintf("failed to patch failover DRPlacementControl %s in %s", drControl.Name, drControl.Namespace))
+						failuresFound = true
+					} else {
+						logger.Info(fmt.Sprintf("succesfully patched DRPlacementControl %s in %s for a failover", drControl.Name, drControl.Namespace))
+						metrics.DRApplicationFailover.WithLabelValues(mcName, drControl.Name, drControl.Namespace)
+					}
 				}
-
-				drControlObj := &ramenv1alpha1.DRPlacementControl{}
-				if err := r.Client.Get(ctx, drControlSubject, drControlObj); err != nil {
-					logger.Error(err, fmt.Sprintf("failed fetching DRPlacementControl %s", drControlSubject.String()))
-					return ctrl.Result{}, err
-				}
-
-				failoverPatch := &ramenv1alpha1.DRPlacementControl{
-					Spec: ramenv1alpha1.DRPlacementControlSpec{
-						Action: ramenv1alpha1.ActionFailover,
-					},
-				}
-
-				if err := r.Client.Patch(ctx, drControlObj, client.StrategicMergeFrom(failoverPatch)); err != nil {
-					// mark error found but don't break - we might have more dr-controls to patch
-					logger.Error(err, fmt.Sprintf("failed to failover %s DRPlacementControl for application %s", drControl.Name, drControl.Namespace))
-					failuresFound = true
-				}
-
-				metrics.DRApplicationFailover.WithLabelValues(mcName, drControl.Name, drControl.Namespace)
 			}
 		}
 	}
@@ -123,6 +88,42 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// patchDRPlacementControl is used to patch a DRPlacementControl for triggering a failover process
+func (r *DRTriggerReconciler) patchDRPlacementControl(ctx context.Context, control ramenv1alpha1.DRPlacementControl, action ramenv1alpha1.DRAction) error {
+	drControlSubject := types.NamespacedName{Namespace: control.Namespace, Name: control.Name}
+
+	// check if the peer is ready
+	if !meta.IsStatusConditionTrue(control.Status.Conditions, ramenv1alpha1.ConditionPeerReady) {
+		return fmt.Errorf("attempting to failover %s, peer not ready", drControlSubject.String())
+	}
+
+	// fetch the DRPlacementControl
+	drControlObj := &ramenv1alpha1.DRPlacementControl{}
+	if err := r.Client.Get(ctx, drControlSubject, drControlObj); err != nil {
+		return err
+	}
+
+	// create the failover action patch
+	failoverPatch := &ramenv1alpha1.DRPlacementControl{
+		Spec: ramenv1alpha1.DRPlacementControlSpec{
+			Action: action,
+		},
+	}
+
+	// serialize the patch
+	rawPatch, err := json.Marshal(failoverPatch)
+	if err != nil {
+		return err
+	}
+
+	// patch the DRPlacementControl for with the failover patch
+	if err = r.Client.Patch(ctx, drControlObj, client.RawPatch(types.MergePatchType, rawPatch)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // isPhaseOkForFailover is a utility function that returns true if the DRPlacementControl.Status.Spec is in a state

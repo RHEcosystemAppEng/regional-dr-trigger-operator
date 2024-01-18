@@ -1,18 +1,18 @@
 # Copyright (c) 2023 Red Hat, Inc.
 
-###############################################
-###### MultiCluster Resiliency ACM Addon ######
-###############################################
+########################################################
+###### Regional DR OCM-based automated triggering ######
+########################################################
 default: help
 
 #####################################
 ###### Image related variables ######
 #####################################
 IMAGE_BUILDER ?= podman##@ Set a custom image builder if 'podman' is not available
-IMAGE_REGISTRY ?= quay.io##@ Set the image registry for build and config, defaults to 'quay.io'
-IMAGE_NAMESPACE ?= ecosystem-appeng##@ Set the image namespace for build and config, defaults to 'ecosystem-appeng'
-IMAGE_NAME ?= multicluster-resiliency-addon##@ Set the image name for build and config, defaults to 'multicluster-resiliency-addon'
-IMAGE_TAG ?= $(strip $(shell cat VERSION))##@ Set the image tag for build and config, defaults to content of the VERSION file
+IMAGE_REGISTRY ?= quay.io##@ Set the image registry, defaults to 'quay.io'
+IMAGE_NAMESPACE ?= ecosystem-appeng##@ Set the image namespace, defaults to 'ecosystem-appeng'
+IMAGE_OPERATOR_NAME ?= regional-dr-trigger-operator##@ Set the operator image name, defaults to 'regional-dr-trigger-operator'
+IMAGE_OPERATOR_TAG ?= $(strip $(shell cat VERSION))##@ Set the operator image tag, defaults to content of the VERSION file
 
 ##########################################################
 ###### Create working directories (note .gitignore) ######
@@ -41,7 +41,6 @@ BIN_GO ?= go##@ Set a custom 'go' binary path if not in PATH (useful for multi v
 ###############################
 ###### Various variables ######
 ###############################
-SPOKE_NAME ?= vp-pool-m2rdd##@ Set the name of the Spoke to install the addon manager in, defaults to 'cluster1'
 COVERAGE_THRESHOLD ?= 60##@ Set the unit test code coverage threshold, defaults to '60'
 
 #########################
@@ -55,35 +54,33 @@ BUILD_TIMESTAMP = $(strip $(shell date -d "$(BUILD_DATE)" +%s))
 #########################
 COMMIT_HASH = $(strip $(shell git rev-parse --short HEAD))
 LDFLAGS=-ldflags="\
--X 'github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version.tag=${IMAGE_TAG}' \
--X 'github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version.commit=${COMMIT_HASH}' \
--X 'github.com/rhecosystemappeng/multicluster-resiliency-addon/pkg/version.date=${BUILD_DATE}' \
+-X 'regional-dr-trigger-operator/pkg/version.tag=${IMAGE_OPERATOR_TAG}' \
+-X 'regional-dr-trigger-operator/pkg/version.commit=${COMMIT_HASH}' \
+-X 'regional-dr-trigger-operator/pkg/version.date=${BUILD_DATE}' \
 "
 
 #########################
 ###### Image names ######
 #########################
-FULL_IMAGE_NAME = $(strip $(IMAGE_REGISTRY)/$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG))
-FULL_IMAGE_NAME_UNIQUE = $(FULL_IMAGE_NAME)_$(COMMIT_HASH)_$(BUILD_TIMESTAMP)
+FULL_OPERATOR_IMAGE_NAME = $(strip $(IMAGE_REGISTRY)/$(IMAGE_NAMESPACE)/$(IMAGE_OPERATOR_NAME):$(IMAGE_OPERATOR_TAG))
+FULL_OPERATOR_IMAGE_NAME_UNIQUE = $(FULL_OPERATOR_IMAGE_NAME)_$(COMMIT_HASH)_$(BUILD_TIMESTAMP)
 
 ####################################
 ###### Build and push project ######
 ####################################
-.PHONY: tidy
-tidy: ## Run go mod tidy
+.PHONY: build build/operator
+build build/operator: $(LOCALBUILD) ## Build the project as a binary in ./build
 	$(BIN_GO) mod tidy
+	$(BIN_GO) build $(LDFLAGS) -o $(LOCALBUILD)/rdrtrigger ./main.go
 
-build: $(LOCALBUILD) tidy ## Build the project as a binary in ./build
-	$(BIN_GO) build $(LDFLAGS) -o $(LOCALBUILD)/mcra ./main.go
+.PHONY: build/operator/image
+build/operator/image: ## Build the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_OPERATOR_NAME, and IMAGE_OPERATOR_TAG
+	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_OPERATOR_IMAGE_NAME) -f ./Containerfile
 
-.PHONY: build/image
-build/image: ## Build the image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG
-	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_IMAGE_NAME) -f ./Containerfile
-
-build/image/push: build/image ## Build and push the image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG
-	$(IMAGE_BUILDER) tag $(FULL_IMAGE_NAME) $(FULL_IMAGE_NAME_UNIQUE)
-	$(IMAGE_BUILDER) push $(FULL_IMAGE_NAME_UNIQUE)
-	$(IMAGE_BUILDER) push $(FULL_IMAGE_NAME)
+build/operator/image/push: build/operator/image ## Build and push the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_OPERATOR_NAME, and IMAGE_OPERATOR_TAG
+	$(IMAGE_BUILDER) tag $(FULL_OPERATOR_IMAGE_NAME) $(FULL_OPERATOR_IMAGE_NAME_UNIQUE)
+	$(IMAGE_BUILDER) push $(FULL_OPERATOR_IMAGE_NAME_UNIQUE)
+	$(IMAGE_BUILDER) push $(FULL_OPERATOR_IMAGE_NAME)
 
 ###########################################
 ###### Code and Manifests generation ######
@@ -92,32 +89,20 @@ build/image/push: build/image ## Build and push the image, customized with IMAGE
 generate/manifests: $(BIN_CONTROLLER_GEN) ## Generate the manifest files
 	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controller/..."
 
-########################################
-###### Deploy and Apply resources ######
-########################################
-addon/deploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Deploy the addon manager on the Hub cluster
-	cp config/addon/kustomization.yaml config/addon/kustomization.yaml.tmp
-	cd config/addon && $(BIN_KUSTOMIZE) edit set image manager-image=$(FULL_IMAGE_NAME)
+##############################################
+###### Deploy and Undeploy the operator ######
+##############################################
+deploy/operator: $(BIN_KUSTOMIZE) verify/tools/oc ## Deploy the Regional DR Trigger Operator
+	cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
+	cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
 	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) apply -f -
-	mv config/addon/kustomization.yaml.tmp config/addon/kustomization.yaml
+	mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
 
-addon/undeploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon manager on the Hub cluster
-	cp config/addon/kustomization.yaml config/addon/kustomization.yaml.tmp
-	cd config/addon && $(BIN_KUSTOMIZE) edit set image manager-image=$(FULL_IMAGE_NAME)
+undeploy/operator: $(BIN_KUSTOMIZE) verify/tools/oc ## Undeploy the Regional DR Trigger Operator
+	cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
+	cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
 	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) delete --ignore-not-found -f -
-	mv config/addon/kustomization.yaml.tmp config/addon/kustomization.yaml
-
-addon/install: $(BIN_KUSTOMIZE) verify/tools/oc ## Install the addon agent for a spoke named in SPOKE_NAME on the Hub cluster
-	cp config/samples/kustomization.yaml config/samples/kustomization.yaml.tmp
-	cd config/samples && $(BIN_KUSTOMIZE) edit set namespace $(SPOKE_NAME)
-	$(BIN_KUSTOMIZE) build config/samples | $(BIN_OC) apply -f -
-	mv config/samples/kustomization.yaml.tmp config/samples/kustomization.yaml
-
-addon/uninstall: $(BIN_KUSTOMIZE) verify/tools/oc ## Remove the addon agent for a spoke named in SPOKE_NAME on the Hub cluster
-	cp config/samples/kustomization.yaml config/samples/kustomization.yaml.tmp
-	cd config/samples && $(BIN_KUSTOMIZE) edit set namespace $(SPOKE_NAME)
-	$(BIN_KUSTOMIZE) build config/samples | $(BIN_OC) delete --ignore-not-found -f -
-	mv config/samples/kustomization.yaml.tmp config/samples/kustomization.yaml
+	mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
 
 ###########################
 ###### Test codebase ######
@@ -142,8 +127,8 @@ test/mut: $(BIN_GREMLINS) ## Run mutation tests
 ###########################
 lint/all: lint/code lint/ci lint/containerfile ## Lint the entire project (code, ci, containerfile)
 
-.PHONY: lint/code
-lint/code: $(BIN_GOLINTCI) ## Lint the code
+.PHONY: lint lint/code
+lint lint/code: $(BIN_GOLINTCI) ## Lint the code
 	$(BIN_GO) fmt ./...
 	$(BIN_GOLINTCI) run
 
@@ -161,7 +146,7 @@ lint/containerfile: ## Lint the Containerfile (using Hadolint image, do not use 
 help: verify/tools/awk ## Show this help message
 	@$(BIN_AWK) 'BEGIN {\
 			FS = ".*##@";\
-			print "\033[1;31mMulticluster Resiliency Addon\033[0m";\
+			print "\033[1;31mRegional DR Trigger Operator\033[0m";\
 			print "\033[1;32mUsage\033[0m";\
 			printf "\t\033[1;37mmake <target> |";\
 			printf "\tmake <target> [Variables Set] |";\
@@ -177,7 +162,7 @@ help: verify/tools/awk ## Show this help message
 			SORTED = "sort";\
             print "\033[1;32mAvailable Targets\033[0m"}\
 		/^(\s|[a-zA-Z_0-9-]|\/)+:.*?##/ {\
-			if($$0 ~ /addon/)\
+			if($$0 ~ /deploy/)\
 				printf "\t\033[1;36m%-35s \033[0;33m%s\033[0m\n", $$1, $$2 | SORTED;\
 			else\
 				printf "\t\033[1;36m%-35s \033[0;37m%s\033[0m\n", $$1, $$2 | SORTED; }\

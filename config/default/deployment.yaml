@@ -1,33 +1,27 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: manager
+  name: operator
 spec:
   replicas: 0
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/default-container: manager
+        kubectl.kubernetes.io/default-container: rdrtrigger
     spec:
       serviceAccountName: sa
       securityContext:
         runAsNonRoot: true
       containers:
-      - name: manager
-        image: manager-image
+      - name: rdrtrigger
+        image: rdrtrigger-image
         # TODO change to IfNotPresent
         imagePullPolicy: Always
         args:
-          - manager
-          - --agent-image=manager-image
-          - --controller-leader-election
-          - --controller-probe-address=:8081
-          - --controller-metric-address=127.0.0.1:8080
-        env:
-          - name: POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
+          - rdrtrigger
+          - --leader-election
+          - --probe-address=:8081
+          - --metric-address=127.0.0.1:8080
         readinessProbe:
           httpGet:
             path: /readyz

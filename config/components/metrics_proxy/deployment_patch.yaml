@@ -1,10 +1,7 @@
-# This patch inject a sidecar container which is a HTTP proxy for the
-# controller manager, it performs RBAC authorization against the Kubernetes API using SubjectAccessReviews.
-# If ports are changed here, modify ../json/manager_deployment_args.yaml accordingly
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: manager
+  name: operator
 spec:
   template:
     spec:

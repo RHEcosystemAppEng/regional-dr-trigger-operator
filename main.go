@@ -4,11 +4,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/rhecosystemappeng/multicluster-resiliency-addon/cmd"
+	"regional-dr-trigger-operator/cmd"
 )
 
 func main() {
 	if err := cmd.Execute(); err != nil {
-		panic(fmt.Sprintf("failed to run mcra: %v", err))
+		panic(fmt.Sprintf("failed running the regional dr trigger operator: %v", err))
 	}
 }
