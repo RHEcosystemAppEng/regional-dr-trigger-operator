@@ -1,7 +1,7 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: deploy
+  name: operator
 spec:
   replicas: 0
   template:
@@ -15,7 +15,8 @@ spec:
       containers:
       - name: rdrtrigger
         image: rdrtrigger-image
-        imagePullPolicy: IfNotPresent
+        # TODO change to IfNotPresent
+        imagePullPolicy: Always
         args:
           - rdrtrigger
           - --leader-election

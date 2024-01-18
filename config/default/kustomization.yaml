@@ -6,26 +6,27 @@ namespace: open-cluster-management
 namePrefix: regional-dr-trigger-
 
 resources:
-- ../rbac
-- deployment.yaml
-- service.yaml
+  - ../rbac
+  - deployment.yaml
+  - service.yaml
 
 images:
-- name: rdrtrigger-image
-  newName: rdrtrigger-image
-  newTag: replace-me
+  - name: rdrtrigger-image
+    newName: rdrtrigger-image
+    newTag: replace-me
 
 #buildMetadata:
-#- managedByLabel
+#  - managedByLabel
 
 labels:
-- includeTemplates: true
-  pairs:
-    app.kubernetes.io/part-of: regional-dr-trigger-operator
+  - includeTemplates: true
+    includeSelectors: true
+    pairs:
+      app.kubernetes.io/part-of: regional-dr-trigger-operator
 
 replicas:
-- count: 1
-  name: deploy
+  - count: 1
+    name: operator
 
 components:
   - ../components/prometheus
