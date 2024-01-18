@@ -101,7 +101,7 @@ operator/deploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Deploy the Regional DR Trig
 	mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
 
 operator/undeploy: $(BIN_KUSTOMIZE) verify/tools/oc ## Undeploy the Regional DR Trigger Operator
-	cp config/deploy/kustomization.yaml config/default/kustomization.yaml.tmp
+	cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
 	cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
 	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) delete --ignore-not-found -f -
 	mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
