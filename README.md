@@ -6,9 +6,9 @@ for all applications running on an unavailable _Managed Cluster_.
 
 ## Metrics
 
-| Name                           | Description                                             | Labels                                                |
-|--------------------------------|---------------------------------------------------------|-------------------------------------------------------|
-| dr_application_failover_count  | Counter for DR application failover processes initiated | dr_cluster_name, dr_control_name, dr_application_name |
+| Name                           | Description                                                                        | Labels                                                |
+|--------------------------------|------------------------------------------------------------------------------------|-------------------------------------------------------|
+| dr_application_failover_count  | Counter for DR Applications failover initiated by the Regional DR Trigger Operator | dr_cluster_name, dr_control_name, dr_application_name |
 
 ## Contributing Guidelines
 

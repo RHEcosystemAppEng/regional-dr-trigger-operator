@@ -44,6 +44,8 @@ func (r *DRTriggerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;update
 // +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;watch;list
 // +kubebuilder:rbac:groups=ramendr.openshift.io,resources=drplacementcontrols,verbs=get;watch;list;patch
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=get;create
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 
 // Reconcile is watching ManagedClusters and will trigger a DRPlacementControl failover. Note, not eligible
 // events for failover. i.e., the cluster is not accepted by the hub, hasn't joined the hub, or is available. // Are
@@ -76,7 +78,7 @@ func (r *DRTriggerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 						failuresFound = true
 					} else {
 						logger.Info(fmt.Sprintf("succesfully patched DRPlacementControl %s in %s for a failover", drControl.Name, drControl.Namespace))
-						metrics.DRApplicationFailover.WithLabelValues(mcName, drControl.Name, drControl.Namespace)
+						metrics.DRApplicationFailover.WithLabelValues(mcName, drControl.Name, drControl.Namespace).Inc()
 					}
 				}
 			}
