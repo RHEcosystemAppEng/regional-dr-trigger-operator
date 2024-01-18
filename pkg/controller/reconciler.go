@@ -6,14 +6,14 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	ramenv1alpha1 "github.com/ramendr/ramen/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"regional-dr-trigger-operator/pkg/metrics"
-
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	"regional-dr-trigger-operator/pkg/metrics"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -40,9 +40,10 @@ func (r *DRTriggerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;watch
-// +kubebuilder:rbac:groups=ramendr.openshift.io,resources=drplacementcontrols,verbs=*
+// +kubebuilder:rbac:groups="*",resources=events,verbs=create
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;update
+// +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;watch;list
+// +kubebuilder:rbac:groups=ramendr.openshift.io,resources=drplacementcontrols,verbs=get;watch;list;patch
 
 // Reconcile is watching ManagedClusters and will trigger a DRPlacementControl failover. Note, not eligible
 // events for failover. i.e., the cluster is not accepted by the hub, hasn't joined the hub, or is available. // Are
@@ -52,8 +53,6 @@ func (r *DRTriggerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// the name in the request is the managed cluster name and cluster-namespace name.
 	mcName := req.Name
-
-	metrics.DRClusterNotAvailable.WithLabelValues(mcName).Inc()
 
 	// fetch all DRPlacementControl in the Hub Cluster
 	drControls := &ramenv1alpha1.DRPlacementControlList{}
@@ -65,42 +64,21 @@ func (r *DRTriggerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	failuresFound := false
 	// iterate over DRPlacementControls and cherry-pick ones that belongs to the current Managed Cluster
 	for _, drControl := range drControls.Items {
-		// check if the current DRPlacementControl belongs to the ManagedCluster reported not available
+		// check if the current DRPlacementControl runs for the triggering ManagedCluster
 		if drControl.Status.PreferredDecision.ClusterName == mcName {
-			// check if the current DRPlacementControl phase is ok for failing over
-			if isPhaseOkForFailover(drControl) {
-				drControlSubject := types.NamespacedName{Namespace: drControl.Namespace, Name: drControl.Name}
-
-				// check if the peer is ready and requeue if it's not
-				if !meta.IsStatusConditionTrue(drControl.Status.Conditions, ramenv1alpha1.ConditionPeerReady) {
-					logger.Error(
-						fmt.Errorf("attempting to failover %s, peer not ready", drControlSubject.String()),
-						"peer not ready")
-					return ctrl.Result{Requeue: true}, nil
+			// check if a failover instruction was already recorded
+			if drControl.Spec.Action != ramenv1alpha1.ActionFailover {
+				// check if the DRPlacementControl is in a phase suitable for a failover, i.e. Deployed (yes) | Initiating (no)
+				if isPhaseOkForFailover(drControl) {
+					// patch DRPlacementControl and initiate a failover process
+					if err := r.patchDRPlacementControl(ctx, drControl, ramenv1alpha1.ActionFailover); err != nil {
+						logger.Error(err, fmt.Sprintf("failed to patch failover DRPlacementControl %s in %s", drControl.Name, drControl.Namespace))
+						failuresFound = true
+					} else {
+						logger.Info(fmt.Sprintf("succesfully patched DRPlacementControl %s in %s for a failover", drControl.Name, drControl.Namespace))
+						metrics.DRApplicationFailover.WithLabelValues(mcName, drControl.Name, drControl.Namespace)
+					}
 				}
-
-				// fetch the current DRPlacementControl
-				drControlObj := &ramenv1alpha1.DRPlacementControl{}
-				if err := r.Client.Get(ctx, drControlSubject, drControlObj); err != nil {
-					logger.Error(err, fmt.Sprintf("failed fetching DRPlacementControl %s", drControlSubject.String()))
-					return ctrl.Result{}, err
-				}
-
-				// create the failover action patch
-				failoverPatch := &ramenv1alpha1.DRPlacementControl{
-					Spec: ramenv1alpha1.DRPlacementControlSpec{
-						Action: ramenv1alpha1.ActionFailover,
-					},
-				}
-
-				// patch the DRPlacementControl for the failover action
-				if err := r.Client.Patch(ctx, drControlObj, client.StrategicMergeFrom(failoverPatch)); err != nil {
-					// mark error found but don't break - we might have more DRPlacementControl to patch
-					logger.Error(err, fmt.Sprintf("failed to failover %s DRPlacementControl for application %s", drControl.Name, drControl.Namespace))
-					failuresFound = true
-				}
-
-				metrics.DRApplicationFailover.WithLabelValues(mcName, drControl.Name, drControl.Namespace)
 			}
 		}
 	}
@@ -110,6 +88,42 @@ func (r *DRTriggerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// patchDRPlacementControl is used to patch a DRPlacementControl for triggering a failover process
+func (r *DRTriggerReconciler) patchDRPlacementControl(ctx context.Context, control ramenv1alpha1.DRPlacementControl, action ramenv1alpha1.DRAction) error {
+	drControlSubject := types.NamespacedName{Namespace: control.Namespace, Name: control.Name}
+
+	// check if the peer is ready
+	if !meta.IsStatusConditionTrue(control.Status.Conditions, ramenv1alpha1.ConditionPeerReady) {
+		return fmt.Errorf("attempting to failover %s, peer not ready", drControlSubject.String())
+	}
+
+	// fetch the DRPlacementControl
+	drControlObj := &ramenv1alpha1.DRPlacementControl{}
+	if err := r.Client.Get(ctx, drControlSubject, drControlObj); err != nil {
+		return err
+	}
+
+	// create the failover action patch
+	failoverPatch := &ramenv1alpha1.DRPlacementControl{
+		Spec: ramenv1alpha1.DRPlacementControlSpec{
+			Action: action,
+		},
+	}
+
+	// serialize the patch
+	rawPatch, err := json.Marshal(failoverPatch)
+	if err != nil {
+		return err
+	}
+
+	// patch the DRPlacementControl for with the failover patch
+	if err = r.Client.Patch(ctx, drControlObj, client.RawPatch(types.MergePatchType, rawPatch)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // isPhaseOkForFailover is a utility function that returns true if the DRPlacementControl.Status.Spec is in a state

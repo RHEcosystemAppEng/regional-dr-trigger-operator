@@ -7,12 +7,12 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	ramenv1alpha1 "github.com/ramendr/ramen/api/v1alpha1"
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -36,8 +36,9 @@ func NewDRTriggerController() DRTriggerController {
 	return DRTriggerController{Options: &DRTriggerControllerOptions{}}
 }
 
-// Run is used for running the DRTriggerController. It takes a context and a ControllerContext for the Hub it runs on.
-func (c *DRTriggerController) Run(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
+// Run is used for running the DRTriggerController. It takes a cobra.Command reference and string array of arguments.
+func (c *DRTriggerController) Run(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
 	logger := log.FromContext(ctx)
 
 	// create and configure the scheme
@@ -48,7 +49,8 @@ func (c *DRTriggerController) Run(ctx context.Context, controllerContext *contro
 	}
 
 	// create a manager
-	mgr, err := ctrl.NewManager(controllerContext.KubeConfig, ctrl.Options{
+	kubeConfig := config.GetConfigOrDie()
+	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
 		Logger:                 logger,
 		LeaderElection:         c.Options.LeaderElection,

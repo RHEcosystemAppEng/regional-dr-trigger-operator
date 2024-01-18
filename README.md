@@ -8,7 +8,6 @@ for all applications running on an unavailable _Managed Cluster_.
 
 | Name                           | Description                                         | Labels                                                |
 |--------------------------------|-----------------------------------------------------|-------------------------------------------------------|
-| dr_cluster_not_available_count | Counter for DR clusters identified as not available | dr_cluster_name                                       |
 | dr_application_failover_count  | Counter for DR application failover performed       | dr_cluster_name, dr_control_name, dr_application_name |
 
 ## Contributing Guidelines
