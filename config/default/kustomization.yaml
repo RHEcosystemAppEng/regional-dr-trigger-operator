@@ -1,33 +1,30 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
-# if changing the namespace -> change in config/components/prometheus/kustomization.yaml
-namespace: open-cluster-management
+# if changing the namespace -> change in config/manager/namespace.yaml#metadata.name
+namespace: regional-dr-trigger
 namePrefix: regional-dr-trigger-
-
 resources:
   - ../rbac
-  - deployment.yaml
-  - service.yaml
-
+  - ../manager
 images:
   - name: rdrtrigger-image
     newName: rdrtrigger-image
     newTag: replace-me
-
-#buildMetadata:
-#  - managedByLabel
-
-labels:
-  - includeTemplates: true
-    includeSelectors: true
-    pairs:
-      app.kubernetes.io/part-of: regional-dr-trigger-operator
-
 replicas:
   - count: 1
     name: operator
-
 components:
   - ../components/prometheus
   - ../components/metrics_proxy
+labels:
+  - includeSelectors: true
+    includeTemplates: true
+    pairs:
+      app.kubernetes.io/component: operator
+      app.kubernetes.io/part-of: regional-dr-trigger-operator
+  - includeTemplates: true
+    pairs:
+      app.kubernetes.io/instance: rdrtrigger-0.1.0
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: regional-dr-trigger-operator
+      app.kubernetes.io/version: 0.1.0

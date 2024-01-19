@@ -1,11 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
-
 resources:
   - servicemonitor.yaml
   - role.yaml
   - rolebinding.yaml
-
 patches:
   - target:
       kind: ServiceMonitor
@@ -14,9 +12,12 @@ patches:
       - op: replace
         path: metadata/namespace
         value: openshift-monitoring
-      # if changing the namespace from config/default/kustomization.yaml -> change value here
-      - op: add
-        path: /spec/namespaceSelector
-        value:
-          matchNames:
-            - open-cluster-management
+replacements:
+  - source:
+      kind: Namespace
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: ServiceMonitor
+        fieldPaths:
+          - spec.namespaceSelector.matchNames.0
