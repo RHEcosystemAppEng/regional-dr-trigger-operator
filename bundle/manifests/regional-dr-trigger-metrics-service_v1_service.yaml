@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: rdrtrigger-0.1.0
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: regional-dr-trigger-operator
+    app.kubernetes.io/part-of: regional-dr-trigger-operator
+    app.kubernetes.io/version: 0.1.0
+  name: regional-dr-trigger-metrics-service
+spec:
+  ports:
+  - name: metrics
+    port: 8383
+    protocol: TCP
+    targetPort: 0
+  selector:
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/part-of: regional-dr-trigger-operator
+status:
+  loadBalancer: {}

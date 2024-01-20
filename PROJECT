@@ -1,0 +1,9 @@
+domain: redhat.com
+layout:
+    - go.kubebuilder.io/v4
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: regional-dr-trigger-operator
+repo: RHEcosystemAppEng/regional-dr-trigger-operator
+version: "3"
