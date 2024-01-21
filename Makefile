@@ -5,6 +5,8 @@
 ##########################################
 default: help
 
+OPERATOR_TARGET_NAMESPACE ?= regional-dr-trigger##@ Set the target namespace for deploying the operator, defaults to 'regional-dr-trigger'
+
 ##########################################################
 ###### Create working directories (note .gitignore) ######
 ##########################################################
@@ -32,7 +34,7 @@ BUNDLE_PACKAGE_NAME ?= $(IMAGE_NAME)##@ Set the bundle package name, defaults to
 BUNDLE_CHANNELS ?= alpha##@ Set a comma-seperated list of channels the bundle belongs too, defaults to 'alpha'
 BUNDLE_DEFAULT_CHANNEL ?= alpha##@ Set the default channel for the bundle, defaults to 'alpha'
 BUNDLE_IMAGE_NAME ?= $(IMAGE_NAME)-bundle##@ Set the image name for the bundle, defaults to IMAGE_NAME-bundle
-BUNDLE_TARGET_NAMESPACE ?= regional-dr-trigger##@ Set the target namespace for running the bundle, defaults to 'regional-dr-trigger'
+BUNDLE_TARGET_NAMESPACE ?= $(OPERATOR_TARGET_NAMESPACE)##@ Set the target namespace for running the bundle, defaults to OPERATOR_TARGET_NAMESPACE
 BUNDLE_SCORECARD_NAMESPACE ?= $(IMAGE_NAME)-scorecard##@ Set the target namespace for running scorecard tests, defaults to IMAGE_NAME-scorecard
 
 ####################################################
@@ -139,9 +141,9 @@ generate/bundle: $(BIN_OPERATOR_SDK) $(BIN_KUSTOMIZE) ## Generate olm bundle
 	mv ./bundle.Dockerfile ./bundle.Containerfile
 	$(call kustomize-cleanup)
 
-##############################################
-###### Deploy and Undeploy the operator ######
-##############################################
+################################################
+###### Install and Uninstall the operator ######
+################################################
 .PHONY: operator/deploy
 operator/deploy: $(BIN_KUSTOMIZE) ## Deploy the Regional DR Trigger Operator
 	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
@@ -299,13 +301,18 @@ $(BIN_OPERATOR_SDK): $(LOCALBIN)
 define kustomize-setup
 $(call verify-essential-tool,$(REQ_BIN_YQ),REQ_BIN_YQ)
 cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
-cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
+cd config/default && \
+$(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME) && \
+$(BIN_KUSTOMIZE) edit set namespace $(OPERATOR_TARGET_NAMESPACE)
 $(REQ_BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/instance" = "rdrtrigger-$(IMAGE_TAG)"' config/default/kustomization.yaml
 $(REQ_BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/version" = "$(IMAGE_TAG)"' config/default/kustomization.yaml
+cp config/manager/namespace.yaml config/manager/namespace.yaml.tmp
+$(REQ_BIN_YQ) -i '.metadata.name = "$(OPERATOR_TARGET_NAMESPACE)"' config/manager/namespace.yaml
 endef
 
 define kustomize-cleanup
-mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
+-mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
+-mv config/manager/namespace.yaml.tmp config/manager/namespace.yaml
 endef
 
 # arg1 = name of the tool to look for | arg2 = name of the variable for a custom replacement

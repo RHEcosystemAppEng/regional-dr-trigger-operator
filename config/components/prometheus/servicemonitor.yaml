@@ -13,7 +13,7 @@ spec:
         insecureSkipVerify: true
   namespaceSelector:
     matchNames:
-      - <replace-me>
+      - replace-me
   selector:
     matchLabels:
       app.kubernetes.io/part-of: regional-dr-trigger-operator
