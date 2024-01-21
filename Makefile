@@ -5,6 +5,17 @@
 ##########################################
 default: help
 
+##########################################################
+###### Create working directories (note .gitignore) ######
+##########################################################
+LOCALBIN = $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+LOCALBUILD = $(shell pwd)/build
+$(LOCALBUILD):
+	mkdir -p $(LOCALBUILD)
+
 #####################################
 ###### Image related variables ######
 #####################################
@@ -24,9 +35,29 @@ BUNDLE_IMAGE_NAME ?= $(IMAGE_NAME)-bundle##@ Set the image name for the bundle, 
 BUNDLE_TARGET_NAMESPACE ?= regional-dr-trigger##@ Set the target namespace for running the bundle, defaults to 'regional-dr-trigger'
 BUNDLE_SCORECARD_NAMESPACE ?= $(IMAGE_NAME)-scorecard##@ Set the target namespace for running scorecard tests, defaults to IMAGE_NAME-scorecard
 
-#####################################
-###### Tools version variables ######
-#####################################
+####################################################
+###### Required tools customization variables ######
+####################################################
+REQ_BIN_AWK ?= awk##@ Set a custom 'awk' binary path if not in PATH
+REQ_BIN_OC ?= oc##@ Set a custom 'oc' binary path if not in PATH
+REQ_BIN_GO ?= go##@ Set a custom 'go' binary path if not in PATH (useful for multi versions environment)
+REQ_BIN_CURL ?= curl##@ Set a custom 'curl' binary path if not in PATH
+REQ_BIN_YQ ?= yq##@ Set a custom 'yq' binary path if not in PATH
+
+######################################################
+###### Downloaded tools customization variables ######
+######################################################
+BIN_CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen##@ Set custom 'controller-gen', if not supplied will install latest in ./bin
+BIN_OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk##@ Set custom 'operator-sdk', if not supplied will install latest in ./bin
+BIN_KUSTOMIZE ?= $(LOCALBIN)/kustomize##@ Set custom 'kustomize', if not supplied will install latest in ./bin
+BIN_GREMLINS ?= $(LOCALBIN)/gremlins##@ Set custom 'gremlins', if not supplied will install latest in ./bin
+BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install latest in ./bin
+BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not supplied will install latest in ./bin
+BIN_ACTIONLINT ?= $(LOCALBIN)/actionlint##@ Set custom 'actionlint', if not supplied will install latest in ./bin
+
+################################################
+###### Downloaded tools version variables ######
+################################################
 VERSION_CONTROLLER_GEN = v0.14.0
 VERSION_OPERATOR_SDK = v1.33.0
 VERSION_KUSTOMIZE = v5.3.0
@@ -35,53 +66,22 @@ VERSION_GO_TEST_COVERAGE = v2.8.2
 VERSION_GOLANG_CI_LINT = v1.55.2
 VERSION_ACTIONLINT = v1.6.26
 
-##########################################################
-###### Create working directories (note .gitignore) ######
-##########################################################
-LOCALBIN = $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
-LOCALBUILD = $(shell pwd)/build
-$(LOCALBUILD):
-	mkdir -p $(LOCALBUILD)
-
 #####################################
-###### Tool binaries variables ######
+###### Build related variables ######
 #####################################
-BIN_CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen##@ Set custom 'controller-gen', if not supplied will install latest in ./bin
-BIN_OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk##@ Set custom 'operator-sdk', if not supplied will install latest in ./bin
-BIN_KUSTOMIZE ?= $(LOCALBIN)/kustomize##@ Set custom 'kustomize', if not supplied will install latest in ./bin
-BIN_GREMLINS ?= $(LOCALBIN)/gremlins##@ Set custom 'gremlins', if not supplied will install latest in ./bin
-BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install latest in ./bin
-BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not supplied will install latest in ./bin
-BIN_ACTIONLINT ?= $(LOCALBIN)/actionlint##@ Set custom 'actionlint', if not supplied will install latest in ./bin
-BIN_AWK ?= awk##@ Set a custom 'awk' binary path if not in PATH
-BIN_OC ?= oc##@ Set a custom 'oc' binary path if not in PATH
-BIN_GO ?= go##@ Set a custom 'go' binary path if not in PATH (useful for multi versions environment)
-BIN_CURL ?= curl##@ Set a custom 'curl' binary path if not in PATH
-BIN_YQ ?= yq##@ Set a custom 'yq' binary path if not in PATH
-
-###############################
-###### Various variables ######
-###############################
-COVERAGE_THRESHOLD ?= 60##@ Set the unit test code coverage threshold, defaults to '60'
-
-#########################
-###### Build times ######
-#########################
 BUILD_DATE = $(strip $(shell date +%FT%T))
 BUILD_TIMESTAMP = $(strip $(shell date -d "$(BUILD_DATE)" +%s))
-
-#########################
-###### Build flags ######
-#########################
 COMMIT_HASH = $(strip $(shell git rev-parse --short HEAD))
 LDFLAGS=-ldflags="\
 -X 'regional-dr-trigger-operator/pkg/version.tag=${IMAGE_TAG}' \
 -X 'regional-dr-trigger-operator/pkg/version.commit=${COMMIT_HASH}' \
 -X 'regional-dr-trigger-operator/pkg/version.date=${BUILD_DATE}' \
 "
+
+####################################
+###### Test related variables ######
+####################################
+COVERAGE_THRESHOLD ?= 60##@ Set the unit test code coverage threshold, defaults to '60'
 
 #########################
 ###### Image names ######
@@ -100,8 +100,8 @@ build/all/image/push: build/operator/image/push build/bundle/image/push ## Build
 
 .PHONY: build build/operator
 build build/operator: $(LOCALBUILD) ## Build the project as a binary in ./build
-	$(BIN_GO) mod tidy
-	$(BIN_GO) build $(LDFLAGS) -o $(LOCALBUILD)/rdrtrigger ./main.go
+	$(REQ_BIN_GO) mod tidy
+	$(REQ_BIN_GO) build $(LDFLAGS) -o $(LOCALBUILD)/rdrtrigger ./main.go
 
 .PHONY: build/operator/image
 build/operator/image: ## Build the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG
@@ -130,39 +130,36 @@ generate/all: generate/manifests generate/bundle ## Generate both rbac and olm b
 generate/manifests: $(BIN_CONTROLLER_GEN) $(BIN_KUSTOMIZE) ## Generate rbac manifest files
 	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controller/..."
 
-generate/bundle: verify/tools/curl verify/tools/yq $(BIN_OPERATOR_SDK) ## Generate olm bundle
-	cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
-	cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
-	$(BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/instance" = "rdrtrigger-$(IMAGE_TAG)"' config/default/kustomization.yaml
-	$(BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/version" = "$(IMAGE_TAG)"' config/default/kustomization.yaml
+.PHONY: generate/bundle
+generate/bundle: $(BIN_OPERATOR_SDK) $(BIN_KUSTOMIZE) ## Generate olm bundle
+	$(call kustomize-setup)
 	$(BIN_KUSTOMIZE) build config/manifests | $(BIN_OPERATOR_SDK) generate bundle --quiet --version $(IMAGE_TAG) \
 	--package $(BUNDLE_PACKAGE_NAME) --channels $(BUNDLE_CHANNELS) --default-channel $(BUNDLE_DEFAULT_CHANNEL)
 	rm -f ./bundle.Containerfile
 	mv ./bundle.Dockerfile ./bundle.Containerfile
-	mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
+	$(call kustomize-cleanup)
 
 ##############################################
 ###### Deploy and Undeploy the operator ######
 ##############################################
-operator/deploy: $(BIN_KUSTOMIZE) verify/tools/oc verify/tools/yq ## Deploy the Regional DR Trigger Operator
-	cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
-	cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
-	$(BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/instance" = "rdrtrigger-$(IMAGE_TAG)"' config/default/kustomization.yaml
-	$(BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/version" = "$(IMAGE_TAG)"' config/default/kustomization.yaml
-	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) apply -f -
-	mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
+.PHONY: operator/deploy
+operator/deploy: $(BIN_KUSTOMIZE) ## Deploy the Regional DR Trigger Operator
+	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	$(call kustomize-setup)
+	$(BIN_KUSTOMIZE) build config/default | $(REQ_BIN_OC) apply -f -
+	$(call kustomize-cleanup)
 
-operator/undeploy: $(BIN_KUSTOMIZE) verify/tools/oc verify/tools/yq ## Undeploy the Regional DR Trigger Operator
-	cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
-	cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
-	$(BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/instance" = "rdrtrigger-$(IMAGE_TAG)"' config/default/kustomization.yaml
-	$(BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/version" = "$(IMAGE_TAG)"' config/default/kustomization.yaml
-	$(BIN_KUSTOMIZE) build config/default | $(BIN_OC) delete --ignore-not-found -f -
-	mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
+.PHONY: operator/undeploy
+operator/undeploy: $(BIN_KUSTOMIZE) ## Undeploy the Regional DR Trigger Operator
+	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	$(call kustomize-setup)
+	$(BIN_KUSTOMIZE) build config/default | $(REQ_BIN_OC) delete --ignore-not-found -f -
+	$(call kustomize-cleanup)
 
 .PHONY: bundle/run
-bundle/run: $(BIN_OPERATOR_SDK) verify/tools/oc ## Run the Regional DR Trigger Operator OLM Bundle from image
-	-$(BIN_OC) create ns $(BUNDLE_TARGET_NAMESPACE)
+bundle/run: $(BIN_OPERATOR_SDK) ## Run the Regional DR Trigger Operator OLM Bundle from image
+	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	-$(REQ_BIN_OC) create ns $(BUNDLE_TARGET_NAMESPACE)
 	$(BIN_OPERATOR_SDK) run bundle $(FULL_BUNDLE_IMAGE_NAME) -n $(BUNDLE_TARGET_NAMESPACE)
 
 .PHONY: bundle/cleanup
@@ -170,21 +167,22 @@ bundle/cleanup: $(BIN_OPERATOR_SDK) ## Cleanup the Regional DR Trigger Operator 
 	$(BIN_OPERATOR_SDK) cleanup $(BUNDLE_PACKAGE_NAME) -n $(BUNDLE_TARGET_NAMESPACE)
 
 .PHONY: bundle/cleanup/namespace
-bundle/cleanup/namespace: verify/tools/oc ## DELETE the Regional DR Trigger Operator OLM Bundle namespace (BE CAREFUL)
-	$(BIN_OC) delete ns $(BUNDLE_TARGET_NAMESPACE)
+bundle/cleanup/namespace: ## DELETE the Regional DR Trigger Operator OLM Bundle namespace (BE CAREFUL)
+	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	$(REQ_BIN_OC) delete ns $(BUNDLE_TARGET_NAMESPACE)
 
 ###########################
 ###### Test codebase ######
 ###########################
 .PHONY: test
 test: ## Run all unit tests
-	$(BIN_GO) test -v ./...
+	$(REQ_BIN_GO) test -v ./...
 
 .PHONY: test/cov
 test/cov: $(BIN_GO_TEST_COVERAGE) ## Run all unit tests and print coverage report, use the COVERAGE_THRESHOLD var for setting threshold
-	$(BIN_GO) test -failfast -coverprofile=cov.out -v ./...
-	$(BIN_GO) tool cover -func=cov.out
-	$(BIN_GO) tool cover -html=cov.out -o cov.html
+	$(REQ_BIN_GO) test -failfast -coverprofile=cov.out -v ./...
+	$(REQ_BIN_GO) tool cover -func=cov.out
+	$(REQ_BIN_GO) tool cover -html=cov.out -o cov.html
 	$(BIN_GO_TEST_COVERAGE) -p cov.out -k 0 -t $(COVERAGE_THRESHOLD)
 
 .PHONY: test/mut
@@ -192,19 +190,21 @@ test/mut: $(BIN_GREMLINS) ## Run mutation tests
 	$(BIN_GREMLINS) unleash
 
 .PHONY: test/bundle
-test/bundle: $(BIN_OPERATOR_SDK) verify/tools/oc ## Run Scorecard Bundle Tests (requires connected cluster)
+test/bundle: $(BIN_OPERATOR_SDK) ## Run Scorecard Bundle Tests (requires connected cluster)
+	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
 	@ { \
-	if $(BIN_OC) create ns $(BUNDLE_SCORECARD_NAMESPACE); then \
+	if $(REQ_BIN_OC) create ns $(BUNDLE_SCORECARD_NAMESPACE); then \
 		$(BIN_OPERATOR_SDK) scorecard ./bundle -n $(BUNDLE_SCORECARD_NAMESPACE) --pod-security=restricted; \
-		$(BIN_OC) delete ns $(BUNDLE_SCORECARD_NAMESPACE); \
+		$(REQ_BIN_OC) delete ns $(BUNDLE_SCORECARD_NAMESPACE); \
 	else \
 		$(BIN_OPERATOR_SDK) scorecard ./bundle -n $(BUNDLE_SCORECARD_NAMESPACE) --pod-security=restricted; \
 	fi \
 	}
 
 .PHONY: test/bundle/delete/ns
-test/bundle/delete/ns: verify/tools/oc ## DELETE the Scorecard namespace (BE CAREFUL)
-	$(BIN_OC) delete ns $(BUNDLE_SCORECARD_NAMESPACE)
+test/bundle/delete/ns: ## DELETE the Scorecard namespace (BE CAREFUL)
+	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	-$(REQ_BIN_OC) delete ns $(BUNDLE_SCORECARD_NAMESPACE)
 
 ###########################
 ###### Lint codebase ######
@@ -213,7 +213,7 @@ lint/all: lint/code lint/ci lint/containerfile lint/bundle ## Lint the entire pr
 
 .PHONY: lint lint/code
 lint lint/code: $(BIN_GOLINTCI) ## Lint the code
-	$(BIN_GO) fmt ./...
+	$(REQ_BIN_GO) fmt ./...
 	$(BIN_GOLINTCI) run
 
 .PHONY: lint/ci
@@ -231,8 +231,9 @@ lint/bundle: $(BIN_OPERATOR_SDK) ## Validate OLM bundle
 ################################
 ###### Display build help ######
 ################################
-help: verify/tools/awk ## Show this help message
-	@$(BIN_AWK) 'BEGIN {\
+help: ## Show this help message
+	$(call verify-essential-tool,$(REQ_BIN_AWK),REQ_BIN_AWK)
+	@$(REQ_BIN_AWK) 'BEGIN {\
 			FS = ".*##@";\
 			print "\033[1;31mRegional DR Trigger Operator\033[0m";\
 			print "\033[1;32mUsage\033[0m";\
@@ -245,7 +246,7 @@ help: verify/tools/awk ## Show this help message
 			split($$0,t,"?=");\
 			printf "\t\033[1;36m%-35s \033[0;37m%s\033[0m\n",t[1], $$2 | "sort" }'\
 		$(MAKEFILE_LIST)
-	@$(BIN_AWK) 'BEGIN {\
+	@$(REQ_BIN_AWK) 'BEGIN {\
 			FS = ":.*##";\
 			SORTED = "sort";\
             print "\033[1;32mAvailable Targets\033[0m"}\
@@ -268,56 +269,50 @@ help: verify/tools/awk ## Show this help message
 ###### Install required tools ######
 ####################################
 $(BIN_KUSTOMIZE): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(BIN_GO) install sigs.k8s.io/kustomize/kustomize/v5@$(VERSION_KUSTOMIZE)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/kustomize/kustomize/v5@$(VERSION_KUSTOMIZE)
 
 $(BIN_CONTROLLER_GEN): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(BIN_GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@$(VERSION_CONTROLLER_GEN)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@$(VERSION_CONTROLLER_GEN)
 
 $(BIN_GREMLINS): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(BIN_GO) install github.com/go-gremlins/gremlins/cmd/gremlins@$(VERSION_GREMLINS)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/go-gremlins/gremlins/cmd/gremlins@$(VERSION_GREMLINS)
 
 $(BIN_GO_TEST_COVERAGE): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(BIN_GO) install github.com/vladopajic/go-test-coverage/v2@$(VERSION_GO_TEST_COVERAGE)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/vladopajic/go-test-coverage/v2@$(VERSION_GO_TEST_COVERAGE)
 
 $(BIN_GOLINTCI): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(BIN_GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(VERSION_GOLANG_CI_LINT)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(VERSION_GOLANG_CI_LINT)
 
 $(BIN_ACTIONLINT): $(LOCALBIN) # recommendation: manually install shellcheck and verify it's on your PATH, it will be picked up by actionlint
-	GOBIN=$(LOCALBIN) $(BIN_GO) install github.com/rhysd/actionlint/cmd/actionlint@$(VERSION_ACTIONLINT)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/rhysd/actionlint/cmd/actionlint@$(VERSION_ACTIONLINT)
 
 $(BIN_OPERATOR_SDK): $(LOCALBIN)
+	$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
 	OS=$(shell go env GOOS) && \
 	ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(BIN_OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(VERSION_OPERATOR_SDK)/operator-sdk_$${OS}_$${ARCH}
+	$(REQ_BIN_CURL) -sSLo $(BIN_OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(VERSION_OPERATOR_SDK)/operator-sdk_$${OS}_$${ARCH}
 	chmod +x $(BIN_OPERATOR_SDK)
 
-######################################
-###### Verify tools availablity ######
-######################################
+###############################
+###### Utility functions ######
+###############################
+define kustomize-setup
+$(call verify-essential-tool,$(REQ_BIN_YQ),REQ_BIN_YQ)
+cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
+cd config/default && $(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME)
+$(REQ_BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/instance" = "rdrtrigger-$(IMAGE_TAG)"' config/default/kustomization.yaml
+$(REQ_BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/version" = "$(IMAGE_TAG)"' config/default/kustomization.yaml
+endef
 
-# member 1 is the missing tool name, member 2 is the name of the variable used for customizing the tool path
+define kustomize-cleanup
+mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
+endef
+
+# arg1 = name of the tool to look for | arg2 = name of the variable for a custom replacement
 TOOL_MISSING_ERR_MSG = Please install '$(1)' or specify a custom path using the '$(2)' variable
-
-.PHONY: verify/tools/awk
-verify/tools/awk:
-ifeq (,$(shell which $(BIN_AWK) 2> /dev/null ))
-	$(error $(call TOOL_MISSING_ERR_MSG,awk,BIN_AWK))
-endif
-
-.PHONY: verify/tools/oc
-verify/tools/oc:
-ifeq (,$(shell which $(BIN_OC) 2> /dev/null ))
-	$(error $(call TOOL_MISSING_ERR_MSG,oc,BIN_OC))
-endif
-
-.PHONY: verify/tools/curl
-verify/tools/curl:
-ifeq (,$(shell which $(BIN_CURL) 2> /dev/null ))
-	$(error $(call TOOL_MISSING_ERR_MSG,curl,BIN_CURL))
-endif
-
-.PHONY: verify/tools/yq
-verify/tools/yq:
-ifeq (,$(shell which $(BIN_YQ) 2> /dev/null ))
-	$(error $(call TOOL_MISSING_ERR_MSG,yq,BIN_YQ))
-endif
+define verify-essential-tool
+@if !(which $(1) &> /dev/null); then \
+	echo $(call TOOL_MISSING_ERR_MSG,$(1),$(2)); \
+	exit 1; \
+fi
+endef
