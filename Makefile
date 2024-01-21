@@ -56,6 +56,7 @@ BIN_GREMLINS ?= $(LOCALBIN)/gremlins##@ Set custom 'gremlins', if not supplied w
 BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install latest in ./bin
 BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not supplied will install latest in ./bin
 BIN_ACTIONLINT ?= $(LOCALBIN)/actionlint##@ Set custom 'actionlint', if not supplied will install latest in ./bin
+BIN_GO_LICENSES ?= $(LOCALBIN)/go-licenses##@ Set custom 'go-licenses', if not supplied will install latest in ./bin
 
 ################################################
 ###### Downloaded tools version variables ######
@@ -67,6 +68,7 @@ VERSION_GREMLINS = v0.5.0
 VERSION_GO_TEST_COVERAGE = v2.8.2
 VERSION_GOLANG_CI_LINT = v1.55.2
 VERSION_ACTIONLINT = v1.6.26
+VERSION_GO_LICENSES = v1.6.0
 
 #####################################
 ###### Build related variables ######
@@ -211,12 +213,16 @@ test/bundle/delete/ns: ## DELETE the Scorecard namespace (BE CAREFUL)
 ###########################
 ###### Lint codebase ######
 ###########################
-lint/all: lint/code lint/ci lint/containerfile lint/bundle ## Lint the entire project (code, ci, containerfile)
+lint/all: lint/code lint/licenses lint/ci lint/containerfile lint/bundle ## Lint the entire project (code, ci, containerfile)
 
 .PHONY: lint lint/code
 lint lint/code: $(BIN_GOLINTCI) ## Lint the code
 	$(REQ_BIN_GO) fmt ./...
 	$(BIN_GOLINTCI) run
+
+.PHONY: lint/licenses
+lint/licenses: $(BIN_GO_LICENSES) ## Verify we're not using any dependencies with forbidden licences
+	$(BIN_GO_LICENSES) check .
 
 .PHONY: lint/ci
 lint/ci: $(BIN_ACTIONLINT) ## Lint the ci
@@ -287,6 +293,9 @@ $(BIN_GOLINTCI): $(LOCALBIN)
 
 $(BIN_ACTIONLINT): $(LOCALBIN) # recommendation: manually install shellcheck and verify it's on your PATH, it will be picked up by actionlint
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/rhysd/actionlint/cmd/actionlint@$(VERSION_ACTIONLINT)
+
+$(BIN_GO_LICENSES): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/google/go-licenses@$(VERSION_GO_LICENSES)
 
 $(BIN_OPERATOR_SDK): $(LOCALBIN)
 	$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
