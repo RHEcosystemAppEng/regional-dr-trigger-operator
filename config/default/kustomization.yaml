@@ -1,20 +1,21 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: replace-me
+namespace: regional-dr-trigger
 namePrefix: regional-dr-trigger-
 resources:
   - ../rbac
   - ../manager
 images:
   - name: rdrtrigger-image
-    newName: rdrtrigger-image
-    newTag: replace-me
+    newName: quay.io/ecosystem-appeng/regional-dr-trigger-operator
+    newTag: 0.1.0
 replicas:
   - count: 1
     name: operator
 components:
   - ../components/prometheus
   - ../components/metrics_proxy
+# the following are being patched by Makefile
 labels:
   - includeSelectors: true
     includeTemplates: true
@@ -23,8 +24,7 @@ labels:
       app.kubernetes.io/part-of: regional-dr-trigger-operator
   - includeTemplates: true
     pairs:
+      app.kubernetes.io/instance: rdrtrigger-0.1.0
       app.kubernetes.io/managed-by: kustomize
       app.kubernetes.io/name: regional-dr-trigger-operator
-      # the following are being patched by Makefile
-      app.kubernetes.io/instance: replace-me
-      app.kubernetes.io/version: replace-me
+      app.kubernetes.io/version: 0.1.0
