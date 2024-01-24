@@ -68,17 +68,15 @@ for temp_template in "$temp_folder"/templates/*.yml; do
     fi
     for transformer in $transformers; do
         # if we have a transformer for our current kind.ver.grp / kind.ver
-        if [[ "$transformer_name" == "$transformer" ]]; then
-            # invoke the transformer in charge of moving content to the values file
-            # and replacing content with templates on the template file
-            "$transformers_folder/$transformer_name" --target_manifest "$temp_template"
-            # inject helm-related labels
-            inject_helm_labels "$temp_template"
-            # transformers use yq to inject templates to the template file, we surround our templates with quotes to
-            # suppress parsing by yq. these quotes need to be removed from the template file or they break templating
-            $bin_sed -i -e "s/'//g" "$temp_template"
-        fi
+        # invoke the transformer in charge of moving content to the values file
+        # and replacing content with templates on the template file
+        [[ "$transformer_name" == "$transformer" ]] && "$transformers_folder/$transformer_name" --target_manifest "$temp_template"
     done
+    # inject helm-related labels
+    inject_helm_labels "$temp_template"
+    # transformers use yq to inject templates to the template file, we surround our templates with quotes to
+    # suppress parsing by yq. these quotes need to be removed from the template file or they break templating
+    $bin_sed -i -e "s/'//g" "$temp_template"
 done
 
 # clean root chart folder and move temporary content to it
