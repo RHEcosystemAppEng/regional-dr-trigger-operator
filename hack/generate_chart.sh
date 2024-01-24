@@ -79,10 +79,7 @@ for temp_template in "$temp_folder"/templates/*.yml; do
     $bin_sed -i -e "s/'//g" "$temp_template"
 done
 
-# clean root chart folder and move temporary content to it
+# clean root chart folder and copy temporary content into it
 rm -rf "${target_folder:?}"/*
 cp -rf "$temp_folder"/* "$target_folder"
 cp -rf ./LICENSE "$target_folder"
-
-exit 0
-

@@ -46,6 +46,7 @@ REQ_BIN_GO ?= go##@ Set a custom 'go' binary path if not in PATH (useful for mul
 REQ_BIN_CURL ?= curl##@ Set a custom 'curl' binary path if not in PATH
 REQ_BIN_YQ ?= yq##@ Set a custom 'yq' binary path if not in PATH
 REQ_BIN_HELM ?= helm##@ Set a custom 'helm' binary path if not in PATH
+REQ_BIN_SED ?= sed##@ Set a custom 'sed' binary path if not in PATH
 
 ######################################################
 ###### Downloaded tools customization variables ######
@@ -121,7 +122,7 @@ build/operator/image/push: build/operator/image ## Build and push the operator i
 
 .PHONY: build/bundle/image
 build/bundle/image: ## Build the bundle image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, BUNDLE_IMAGE_NAME, and IMAGE_TAG
-	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_BUNDLE_IMAGE_NAME) -f ./bundle/bundle.Containerfile
+	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_BUNDLE_IMAGE_NAME) -f ./bundle.Containerfile
 
 build/bundle/image/push: build/bundle/image ## Build and push the bundle image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, BUNDLE_IMAGE_NAME, and IMAGE_TAG
 	$(IMAGE_BUILDER) tag $(FULL_BUNDLE_IMAGE_NAME) $(FULL_BUNDLE_IMAGE_NAME_UNIQUE)
@@ -131,7 +132,7 @@ build/bundle/image/push: build/bundle/image ## Build and push the bundle image, 
 ###########################################
 ###### Code and Manifests generation ######
 ###########################################
-generate/all: generate/manifests generate/bundle ## Generate both rbac and olm bundle files
+generate/all: generate/manifests generate/bundle generate/chart ## Generate both rbac and olm bundle files
 
 .PHONY: generate/manifests
 generate/manifests: $(BIN_CONTROLLER_GEN) $(BIN_KUSTOMIZE) ## Generate rbac manifest files
@@ -139,39 +140,39 @@ generate/manifests: $(BIN_CONTROLLER_GEN) $(BIN_KUSTOMIZE) ## Generate rbac mani
 
 .PHONY: generate/bundle
 generate/bundle: $(BIN_OPERATOR_SDK) $(BIN_KUSTOMIZE) ## Generate olm bundle
-	$(call kustomize-setup)
+	@$(call kustomize-setup)
 	$(BIN_KUSTOMIZE) build config/manifests | $(BIN_OPERATOR_SDK) generate bundle --quiet --version $(IMAGE_TAG) \
 	--package $(BUNDLE_PACKAGE_NAME) --channels $(BUNDLE_CHANNELS) --default-channel $(BUNDLE_DEFAULT_CHANNEL)
-	mv -f ./bundle.Dockerfile ./bundle/bundle.Containerfile
-	$(call kustomize-cleanup)
+	@mv -f ./bundle.Dockerfile ./bundle.Containerfile
+	@$(call kustomize-cleanup)
 
 .PHONY: generate/chart
 generate/chart: $(BIN_KUSTOMIZE) ## Generate a Helm Chart
-	$(call verify-essential-tool,$(REQ_BIN_YQ),REQ_BIN_YQ)
-	$(call kustomize-setup)
-	./hack/generate_chart.sh --bin_yq $(REQ_BIN_YQ) --bin_kustomize $(BIN_KUSTOMIZE)
-	$(call kustomize-cleanup)
+	@$(call verify-essential-tool,$(REQ_BIN_YQ),REQ_BIN_YQ)
+	@$(call kustomize-setup)
+	./hack/generate_chart.sh --bin_yq $(REQ_BIN_YQ) --bin_kustomize $(BIN_KUSTOMIZE) --bin_sed $(REQ_BIN_SED)
+	@$(call kustomize-cleanup)
 
 ################################################
 ###### Install and Uninstall the operator ######
 ################################################
 .PHONY: operator/deploy
 operator/deploy: $(BIN_KUSTOMIZE) ## Deploy the Regional DR Trigger Operator
-	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
-	$(call kustomize-setup)
+	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	@$(call kustomize-setup)
 	$(BIN_KUSTOMIZE) build config/default | $(REQ_BIN_OC) apply -f -
-	$(call kustomize-cleanup)
+	@$(call kustomize-cleanup)
 
 .PHONY: operator/undeploy
 operator/undeploy: $(BIN_KUSTOMIZE) ## Undeploy the Regional DR Trigger Operator
-	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
-	$(call kustomize-setup)
+	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	@$(call kustomize-setup)
 	$(BIN_KUSTOMIZE) build config/default | $(REQ_BIN_OC) delete --ignore-not-found -f -
-	$(call kustomize-cleanup)
+	@$(call kustomize-cleanup)
 
 .PHONY: bundle/run
 bundle/run: $(BIN_OPERATOR_SDK) ## Run the Regional DR Trigger Operator OLM Bundle from image
-	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
 	-$(REQ_BIN_OC) create ns $(BUNDLE_TARGET_NAMESPACE)
 	$(BIN_OPERATOR_SDK) run bundle $(FULL_BUNDLE_IMAGE_NAME) -n $(BUNDLE_TARGET_NAMESPACE)
 
@@ -181,7 +182,7 @@ bundle/cleanup: $(BIN_OPERATOR_SDK) ## Cleanup the Regional DR Trigger Operator 
 
 .PHONY: bundle/cleanup/namespace
 bundle/cleanup/namespace: ## DELETE the Regional DR Trigger Operator OLM Bundle namespace (BE CAREFUL)
-	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
 	$(REQ_BIN_OC) delete ns $(BUNDLE_TARGET_NAMESPACE)
 
 ###########################
@@ -216,7 +217,7 @@ test/bundle: $(BIN_OPERATOR_SDK) ## Run Scorecard Bundle Tests (requires connect
 
 .PHONY: test/bundle/delete/ns
 test/bundle/delete/ns: ## DELETE the Scorecard namespace (BE CAREFUL)
-	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
+	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
 	-$(REQ_BIN_OC) delete ns $(BUNDLE_SCORECARD_NAMESPACE)
 
 ###########################
@@ -231,11 +232,11 @@ lint lint/code: $(BIN_GOLINTCI) ## Lint the code
 
 .PHONY: lint/licenses
 lint/licenses: $(BIN_GO_LICENSES) ## Verify we're not using any dependencies with forbidden licences
-	$(BIN_GO_LICENSES) check .
+	$(BIN_GO_LICENSES) check . &> /dev/null
 
 .PHONY: lint/ci
 lint/ci: $(BIN_ACTIONLINT) ## Lint the ci
-	$(BIN_ACTIONLINT) --verbose
+	$(BIN_ACTIONLINT)
 
 .PHONY: lint/containerfile
 lint/containerfile: ## Lint the Containerfile (using Hadolint image, do not use inside a container)
