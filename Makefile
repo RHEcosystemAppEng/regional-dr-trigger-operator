@@ -45,18 +45,19 @@ REQ_BIN_OC ?= oc##@ Set a custom 'oc' binary path if not in PATH
 REQ_BIN_GO ?= go##@ Set a custom 'go' binary path if not in PATH (useful for multi versions environment)
 REQ_BIN_CURL ?= curl##@ Set a custom 'curl' binary path if not in PATH
 REQ_BIN_YQ ?= yq##@ Set a custom 'yq' binary path if not in PATH
+REQ_BIN_HELM ?= helm##@ Set a custom 'helm' binary path if not in PATH
 
 ######################################################
 ###### Downloaded tools customization variables ######
 ######################################################
-BIN_CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen##@ Set custom 'controller-gen', if not supplied will install latest in ./bin
-BIN_OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk##@ Set custom 'operator-sdk', if not supplied will install latest in ./bin
-BIN_KUSTOMIZE ?= $(LOCALBIN)/kustomize##@ Set custom 'kustomize', if not supplied will install latest in ./bin
-BIN_GREMLINS ?= $(LOCALBIN)/gremlins##@ Set custom 'gremlins', if not supplied will install latest in ./bin
-BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install latest in ./bin
-BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not supplied will install latest in ./bin
-BIN_ACTIONLINT ?= $(LOCALBIN)/actionlint##@ Set custom 'actionlint', if not supplied will install latest in ./bin
-BIN_GO_LICENSES ?= $(LOCALBIN)/go-licenses##@ Set custom 'go-licenses', if not supplied will install latest in ./bin
+BIN_CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen##@ Set custom 'controller-gen', if not supplied will install in ./bin
+BIN_OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk##@ Set custom 'operator-sdk', if not supplied will install in ./bin
+BIN_KUSTOMIZE ?= $(LOCALBIN)/kustomize##@ Set custom 'kustomize', if not supplied will install in ./bin
+BIN_GREMLINS ?= $(LOCALBIN)/gremlins##@ Set custom 'gremlins', if not supplied will install in ./bin
+BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install in ./bin
+BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not supplied will install in ./bin
+BIN_ACTIONLINT ?= $(LOCALBIN)/actionlint##@ Set custom 'actionlint', if not supplied will install in ./bin
+BIN_GO_LICENSES ?= $(LOCALBIN)/go-licenses##@ Set custom 'go-licenses', if not supplied will install in ./bin
 
 ################################################
 ###### Downloaded tools version variables ######
@@ -73,6 +74,8 @@ VERSION_GO_LICENSES = v1.6.0
 #####################################
 ###### Build related variables ######
 #####################################
+OS=$(shell go env GOOS)
+ARCH=$(shell go env GOARCH)
 BUILD_DATE = $(strip $(shell date +%FT%T))
 BUILD_TIMESTAMP = $(strip $(shell date -d "$(BUILD_DATE)" +%s))
 COMMIT_HASH = $(strip $(shell git rev-parse --short HEAD))
@@ -118,7 +121,7 @@ build/operator/image/push: build/operator/image ## Build and push the operator i
 
 .PHONY: build/bundle/image
 build/bundle/image: ## Build the bundle image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, BUNDLE_IMAGE_NAME, and IMAGE_TAG
-	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_BUNDLE_IMAGE_NAME) -f ./bundle.Containerfile
+	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_BUNDLE_IMAGE_NAME) -f ./bundle/bundle.Containerfile
 
 build/bundle/image/push: build/bundle/image ## Build and push the bundle image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, BUNDLE_IMAGE_NAME, and IMAGE_TAG
 	$(IMAGE_BUILDER) tag $(FULL_BUNDLE_IMAGE_NAME) $(FULL_BUNDLE_IMAGE_NAME_UNIQUE)
@@ -139,8 +142,14 @@ generate/bundle: $(BIN_OPERATOR_SDK) $(BIN_KUSTOMIZE) ## Generate olm bundle
 	$(call kustomize-setup)
 	$(BIN_KUSTOMIZE) build config/manifests | $(BIN_OPERATOR_SDK) generate bundle --quiet --version $(IMAGE_TAG) \
 	--package $(BUNDLE_PACKAGE_NAME) --channels $(BUNDLE_CHANNELS) --default-channel $(BUNDLE_DEFAULT_CHANNEL)
-	rm -f ./bundle.Containerfile
-	mv ./bundle.Dockerfile ./bundle.Containerfile
+	mv -f ./bundle.Dockerfile ./bundle/bundle.Containerfile
+	$(call kustomize-cleanup)
+
+.PHONY: generate/chart
+generate/chart: $(BIN_KUSTOMIZE) ## Generate a Helm Chart
+	$(call verify-essential-tool,$(REQ_BIN_YQ),REQ_BIN_YQ)
+	$(call kustomize-setup)
+	./hack/generate_chart.sh --bin_yq $(REQ_BIN_YQ) --bin_kustomize $(BIN_KUSTOMIZE)
 	$(call kustomize-cleanup)
 
 ################################################
@@ -213,7 +222,7 @@ test/bundle/delete/ns: ## DELETE the Scorecard namespace (BE CAREFUL)
 ###########################
 ###### Lint codebase ######
 ###########################
-lint/all: lint/code lint/licenses lint/ci lint/containerfile lint/bundle ## Lint the entire project (code, ci, containerfile)
+lint/all: lint/code lint/licenses lint/ci lint/containerfile lint/bundle lint/chart ## Lint the entire project (code, ci, containerfile)
 
 .PHONY: lint lint/code
 lint lint/code: $(BIN_GOLINTCI) ## Lint the code
@@ -235,6 +244,11 @@ lint/containerfile: ## Lint the Containerfile (using Hadolint image, do not use 
 .PHONY: lint/bundle
 lint/bundle: $(BIN_OPERATOR_SDK) ## Validate OLM bundle
 	$(BIN_OPERATOR_SDK) bundle validate ./bundle --select-optional suite=operatorframework
+
+.PHONY: lint/chart
+lint/chart: ## Lint the Helm chart
+	$(call verify-essential-tool,$(REQ_BIN_HELM),REQ_BIN_HELM)
+	$(REQ_BIN_HELM) lint ./chart --strict
 
 ################################
 ###### Display build help ######
@@ -299,9 +313,7 @@ $(BIN_GO_LICENSES): $(LOCALBIN)
 
 $(BIN_OPERATOR_SDK): $(LOCALBIN)
 	$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
-	OS=$(shell go env GOOS) && \
-	ARCH=$(shell go env GOARCH) && \
-	$(REQ_BIN_CURL) -sSLo $(BIN_OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(VERSION_OPERATOR_SDK)/operator-sdk_$${OS}_$${ARCH}
+	$(REQ_BIN_CURL) -sSLo $(BIN_OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(VERSION_OPERATOR_SDK)/operator-sdk_$(OS)_$(ARCH)
 	chmod +x $(BIN_OPERATOR_SDK)
 
 ###############################
