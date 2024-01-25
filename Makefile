@@ -45,7 +45,6 @@ REQ_BIN_OC ?= oc##@ Set a custom 'oc' binary path if not in PATH
 REQ_BIN_GO ?= go##@ Set a custom 'go' binary path if not in PATH (useful for multi versions environment)
 REQ_BIN_CURL ?= curl##@ Set a custom 'curl' binary path if not in PATH
 REQ_BIN_YQ ?= yq##@ Set a custom 'yq' binary path if not in PATH
-REQ_BIN_HELM ?= helm##@ Set a custom 'helm' binary path if not in PATH
 REQ_BIN_SED ?= sed##@ Set a custom 'sed' binary path if not in PATH
 
 ######################################################
@@ -56,9 +55,11 @@ BIN_OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk##@ Set custom 'operator-sdk', if no
 BIN_KUSTOMIZE ?= $(LOCALBIN)/kustomize##@ Set custom 'kustomize', if not supplied will install in ./bin
 BIN_GREMLINS ?= $(LOCALBIN)/gremlins##@ Set custom 'gremlins', if not supplied will install in ./bin
 BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install in ./bin
+BIN_ENVTEST ?= $(LOCALBIN)/setup-envtest##@ Set custom 'setup-envtest', if not supplied will install in ./bin
 BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not supplied will install in ./bin
 BIN_ACTIONLINT ?= $(LOCALBIN)/actionlint##@ Set custom 'actionlint', if not supplied will install in ./bin
 BIN_GO_LICENSES ?= $(LOCALBIN)/go-licenses##@ Set custom 'go-licenses', if not supplied will install in ./bin
+BIN_HELM ?= $(LOCALBIN)/helm##@ Set custom 'go-licenses', if not supplied will install in ./bin
 
 ################################################
 ###### Downloaded tools version variables ######
@@ -71,6 +72,7 @@ VERSION_GO_TEST_COVERAGE = v2.8.2
 VERSION_GOLANG_CI_LINT = v1.55.2
 VERSION_ACTIONLINT = v1.6.26
 VERSION_GO_LICENSES = v1.6.0
+VERSION_HELM = v3.14.0
 
 #####################################
 ###### Build related variables ######
@@ -90,6 +92,7 @@ LDFLAGS=-ldflags="\
 ###### Test related variables ######
 ####################################
 COVERAGE_THRESHOLD ?= 60##@ Set the unit test code coverage threshold, defaults to '60'
+ENVTEST_K8S_VERSION = 1.27.x
 
 #########################
 ###### Image names ######
@@ -132,7 +135,7 @@ build/bundle/image/push: build/bundle/image ## Build and push the bundle image, 
 ###########################################
 ###### Code and Manifests generation ######
 ###########################################
-generate/all: generate/manifests generate/bundle generate/chart ## Generate both rbac and olm bundle files
+generate/all: generate/manifests generate/bundle ## Generate both rbac and olm bundle files
 
 .PHONY: generate/manifests
 generate/manifests: $(BIN_CONTROLLER_GEN) $(BIN_KUSTOMIZE) ## Generate rbac manifest files
@@ -147,10 +150,11 @@ generate/bundle: $(BIN_OPERATOR_SDK) $(BIN_KUSTOMIZE) ## Generate olm bundle
 	@$(call kustomize-cleanup)
 
 .PHONY: generate/chart
-generate/chart: $(BIN_KUSTOMIZE) ## Generate a Helm Chart
+generate/chart: $(BIN_KUSTOMIZE) ## Generate a Helm Chart in a target folder. use CHART_VERSION and CHART_TARGET .
 	@$(call verify-essential-tool,$(REQ_BIN_YQ),REQ_BIN_YQ)
 	@$(call kustomize-setup)
-	./hack/generate_chart.sh --bin_yq $(REQ_BIN_YQ) --bin_kustomize $(BIN_KUSTOMIZE) --bin_sed $(REQ_BIN_SED)
+	./hack/generate_chart.sh --bin_yq $(REQ_BIN_YQ) --bin_kustomize $(BIN_KUSTOMIZE) --bin_sed $(REQ_BIN_SED) \
+	--chart_version $(CHART_VERSION) --target_folder $(CHART_TARGET)
 	@$(call kustomize-cleanup)
 
 ################################################
@@ -189,8 +193,8 @@ bundle/cleanup/namespace: ## DELETE the Regional DR Trigger Operator OLM Bundle 
 ###### Test codebase ######
 ###########################
 .PHONY: test
-test: ## Run all unit tests
-	$(REQ_BIN_GO) test -v ./...
+test: $(BIN_ENVTEST) ## Run all unit tests
+	KUBEBUILDER_ASSETS="$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(REQ_BIN_GO) test -v ./...
 
 .PHONY: test/cov
 test/cov: $(BIN_GO_TEST_COVERAGE) ## Run all unit tests and print coverage report, use the COVERAGE_THRESHOLD var for setting threshold
@@ -223,7 +227,7 @@ test/bundle/delete/ns: ## DELETE the Scorecard namespace (BE CAREFUL)
 ###########################
 ###### Lint codebase ######
 ###########################
-lint/all: lint/code lint/licenses lint/ci lint/containerfile lint/bundle lint/chart ## Lint the entire project (code, ci, containerfile)
+lint/all: lint/code lint/licenses lint/ci lint/containerfile lint/bundle ## Lint the entire project (code, ci, containerfile)
 
 .PHONY: lint lint/code
 lint lint/code: $(BIN_GOLINTCI) ## Lint the code
@@ -247,9 +251,8 @@ lint/bundle: $(BIN_OPERATOR_SDK) ## Validate OLM bundle
 	$(BIN_OPERATOR_SDK) bundle validate ./bundle --select-optional suite=operatorframework
 
 .PHONY: lint/chart
-lint/chart: ## Lint the Helm chart
-	$(call verify-essential-tool,$(REQ_BIN_HELM),REQ_BIN_HELM)
-	$(REQ_BIN_HELM) lint ./chart --strict
+lint/chart: $(BIN_HELM) ## Lint the Helm chart. Use CHART_TARGET.
+	$(BIN_HELM) lint $(CHART_TARGET) --strict
 
 ################################
 ###### Display build help ######
@@ -303,6 +306,9 @@ $(BIN_GREMLINS): $(LOCALBIN)
 $(BIN_GO_TEST_COVERAGE): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/vladopajic/go-test-coverage/v2@$(VERSION_GO_TEST_COVERAGE)
 
+$(BIN_ENVTEST): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
 $(BIN_GOLINTCI): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(VERSION_GOLANG_CI_LINT)
 
@@ -313,9 +319,13 @@ $(BIN_GO_LICENSES): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/google/go-licenses@$(VERSION_GO_LICENSES)
 
 $(BIN_OPERATOR_SDK): $(LOCALBIN)
-	$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
+	@$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
 	$(REQ_BIN_CURL) -sSLo $(BIN_OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(VERSION_OPERATOR_SDK)/operator-sdk_$(OS)_$(ARCH)
 	chmod +x $(BIN_OPERATOR_SDK)
+
+$(BIN_HELM): $(LOCALBIN)
+	@$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
+	$(REQ_BIN_CURL) -sSL https://get.helm.sh/helm-$(VERSION_HELM)-$(OS)-$(ARCH).tar.gz | tar xzf - -C $(LOCALBIN) --strip-components=1 --wildcards '*/helm'
 
 ###############################
 ###### Utility functions ######
