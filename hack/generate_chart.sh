@@ -7,8 +7,7 @@
 ######                                                                 ######
 ###### This script uses the base manifests from the 'hack/chart_base'  ######
 ###### folder and a 'kustomization' build to create a chart in the     ######
-###### 'hack/chart_tmp` folder (ignored by git). When done it the will ######
-###### moved into the 'chart' folder for including in git.             ######
+###### a target folder.                                                ######
 #############################################################################
 
 # iterate over arguments and create named parameters
@@ -22,28 +21,31 @@ done
 
 # optional named parameters default values
 base_folder=${temp_folder:-hack/chart_base}
-target_folder=${temp_folder:-chart}
 temp_folder=${temp_folder:-hack/chart_tmp}
 transformers_folder=${transformers_folder:-hack/chart_transformers}
 bin_yq=${bin_yq:-yq}
 bin_kustomize=${bin_kustomize:-kustomize}
 bin_sed=${bin_sed:-sed}
 app_version=${app_version:-$(<VERSION)}
-chart_version=${chart_version:-$(yq '.version' "${target_folder}"/Chart.yaml)}
+
+# required named parameters
+[[ -z $chart_version ]] && echo "please use --chart_version to set the chart version" && exit 1
+[[ -z $target_folder ]] && echo "please use --target_folder to set the folder to generate the chart in" && exit 1
 
 # recreate the temporary folder structure (all current content will be deleted)
-rm -rf "${temp_folder}"
-mkdir -p "${temp_folder}"/templates
-cp -rf "${base_folder}"/* "${temp_folder}"
+rm -rf "$temp_folder"
+mkdir -p "$temp_folder"/templates
+cp -rf "$base_folder"/* "$temp_folder"
+cp -rf ./LICENSE "$temp_folder"
 
 # set temporary chart metadata values
-$bin_yq -i ".version = \"${chart_version}\"" "$temp_folder"/Chart.yaml
-$bin_yq -i ".appVersion = \"${app_version}\"" "$temp_folder"/Chart.yaml
+$bin_yq -i ".version = \"$chart_version\"" "$temp_folder"/Chart.yaml
+$bin_yq -i ".appVersion = \"$app_version\"" "$temp_folder"/Chart.yaml
 
 # create the base templates from kustomization manifests
-$bin_kustomize build config/default > "${temp_folder}"/templates/kustomized_templates.yaml
-(cd "${temp_folder}"/templates && $bin_yq -s '.kind + "-" + .metadata.name' kustomized_templates.yaml)
-rm -f "${temp_folder}"/templates/kustomized_templates.yaml
+$bin_kustomize build config/default > "$temp_folder"/templates/kustomized_templates.yaml
+(cd "$temp_folder"/templates && $bin_yq -s '.kind + "-" + .metadata.name' kustomized_templates.yaml)
+rm -f "$temp_folder"/templates/kustomized_templates.yaml
 
 # utility function for injecting helm-specific labels to the manifest passed as the first argument
 inject_helm_labels(){
@@ -79,7 +81,6 @@ for temp_template in "$temp_folder"/templates/*.yml; do
     $bin_sed -i -e "s/'//g" "$temp_template"
 done
 
-# clean root chart folder and copy temporary content into it
-rm -rf "${target_folder:?}"/*
-cp -rf "$temp_folder"/* "$target_folder"
-cp -rf ./LICENSE "$target_folder"
+# save chart to target folder and delete temporary one
+mv -f "$temp_folder"/* "$target_folder"
+rm -rf "$temp_folder"

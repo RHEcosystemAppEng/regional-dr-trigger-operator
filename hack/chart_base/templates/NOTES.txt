@@ -7,4 +7,7 @@ To learn more about the release, try:
   $ helm status {{ .Release.Name }}
   $ helm get all {{ .Release.Name }}
 
-Source code can be found in https://github.com/RHEcosystemAppEng/regional-dr-trigger-operator.
+Sources for the operator
+    https://github.com/RHEcosystemAppEng/regional-dr-trigger-operator
+Sources for the chart
+    https://github.com/RHEcosystemAppEng/regional-dr-trigger-operator-chart
