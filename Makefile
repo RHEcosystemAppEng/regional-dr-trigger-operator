@@ -197,8 +197,8 @@ test: $(BIN_ENVTEST) ## Run all unit tests
 	KUBEBUILDER_ASSETS="$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(REQ_BIN_GO) test -v ./...
 
 .PHONY: test/cov
-test/cov: $(BIN_GO_TEST_COVERAGE) ## Run all unit tests and print coverage report, use the COVERAGE_THRESHOLD var for setting threshold
-	$(REQ_BIN_GO) test -failfast -coverprofile=cov.out -v ./...
+test/cov: $(BIN_GO_TEST_COVERAGE) $(BIN_ENVTEST) ## Run all unit tests and print coverage report, use the COVERAGE_THRESHOLD var for setting threshold
+	KUBEBUILDER_ASSETS="$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(REQ_BIN_GO) test -failfast -coverprofile=cov.out -v ./...
 	$(REQ_BIN_GO) tool cover -func=cov.out
 	$(REQ_BIN_GO) tool cover -html=cov.out -o cov.html
 	$(BIN_GO_TEST_COVERAGE) -p cov.out -k 0 -t $(COVERAGE_THRESHOLD)
