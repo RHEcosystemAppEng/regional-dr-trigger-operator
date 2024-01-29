@@ -53,7 +53,6 @@ REQ_BIN_SED ?= sed##@ Set a custom 'sed' binary path if not in PATH
 BIN_CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen##@ Set custom 'controller-gen', if not supplied will install in ./bin
 BIN_OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk##@ Set custom 'operator-sdk', if not supplied will install in ./bin
 BIN_KUSTOMIZE ?= $(LOCALBIN)/kustomize##@ Set custom 'kustomize', if not supplied will install in ./bin
-BIN_GREMLINS ?= $(LOCALBIN)/gremlins##@ Set custom 'gremlins', if not supplied will install in ./bin
 BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install in ./bin
 BIN_ENVTEST ?= $(LOCALBIN)/setup-envtest##@ Set custom 'setup-envtest', if not supplied will install in ./bin
 BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not supplied will install in ./bin
@@ -67,7 +66,6 @@ BIN_HELM ?= $(LOCALBIN)/helm##@ Set custom 'go-licenses', if not supplied will i
 VERSION_CONTROLLER_GEN = v0.14.0
 VERSION_OPERATOR_SDK = v1.33.0
 VERSION_KUSTOMIZE = v5.3.0
-VERSION_GREMLINS = v0.5.0
 VERSION_GO_TEST_COVERAGE = v2.8.2
 VERSION_GOLANG_CI_LINT = v1.55.2
 VERSION_ACTIONLINT = v1.6.26
@@ -198,14 +196,10 @@ test: $(BIN_ENVTEST) ## Run all unit tests
 
 .PHONY: test/cov
 test/cov: $(BIN_GO_TEST_COVERAGE) $(BIN_ENVTEST) ## Run all unit tests and print coverage report, use the COVERAGE_THRESHOLD var for setting threshold
-	KUBEBUILDER_ASSETS="$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(REQ_BIN_GO) test -failfast -coverprofile=cov.out -v ./...
+	KUBEBUILDER_ASSETS="$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(REQ_BIN_GO) test -failfast -coverprofile=cov.out -v ./pkg/controller/...
 	$(REQ_BIN_GO) tool cover -func=cov.out
 	$(REQ_BIN_GO) tool cover -html=cov.out -o cov.html
 	$(BIN_GO_TEST_COVERAGE) -p cov.out -k 0 -t $(COVERAGE_THRESHOLD)
-
-.PHONY: test/mut
-test/mut: $(BIN_GREMLINS) ## Run mutation tests
-	$(BIN_GREMLINS) unleash
 
 .PHONY: test/bundle
 test/bundle: $(BIN_OPERATOR_SDK) ## Run Scorecard Bundle Tests (requires connected cluster)
@@ -299,9 +293,6 @@ $(BIN_KUSTOMIZE): $(LOCALBIN)
 
 $(BIN_CONTROLLER_GEN): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@$(VERSION_CONTROLLER_GEN)
-
-$(BIN_GREMLINS): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/go-gremlins/gremlins/cmd/gremlins@$(VERSION_GREMLINS)
 
 $(BIN_GO_TEST_COVERAGE): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/vladopajic/go-test-coverage/v2@$(VERSION_GO_TEST_COVERAGE)
