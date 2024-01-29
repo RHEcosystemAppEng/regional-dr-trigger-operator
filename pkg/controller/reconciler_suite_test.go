@@ -23,14 +23,14 @@ var testEnv *envtest.Environment
 
 var sut *DRTriggerReconciler
 
-// TestReconciler is used for plugging in Ginkgo and Gomega
-func TestReconciler(t *testing.T) {
-	RegisterFailHandler(Fail)       // Set Gomega to report failure to Ginkgo
-	RunSpecs(t, "Reconciler Suite") // run Ginkgo with testing
+// TestController is used for bootstrapping Ginkgo and Gomega
+func TestController(t *testing.T) {
+	RegisterFailHandler(Fail)            // Set Gomega to report failure to Ginkgo
+	RunSpecs(t, "Controller Unit Tests") // run Ginkgo with testing
 }
 
 var _ = BeforeSuite(func(ctx SpecContext) {
-	// create testing environment (including required external crds)
+	By("bootstrapping testing environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("testdata", "external_crds")},
 	}
@@ -59,7 +59,7 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 })
 
 var _ = AfterSuite(func() {
-	// tear down testing environment
+	By("tearing down testing environment")
 	Expect(testEnv.Stop()).To(Succeed())
 })
 

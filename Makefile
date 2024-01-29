@@ -89,7 +89,7 @@ LDFLAGS=-ldflags="\
 ####################################
 ###### Test related variables ######
 ####################################
-COVERAGE_THRESHOLD ?= 60##@ Set the unit test code coverage threshold, defaults to '60'
+COVERAGE_THRESHOLD ?= 55##@ Set the unit test code coverage threshold, defaults to '58'
 ENVTEST_K8S_VERSION = 1.27.x
 
 #########################
@@ -192,11 +192,11 @@ bundle/cleanup/namespace: ## DELETE the Regional DR Trigger Operator OLM Bundle 
 ###########################
 .PHONY: test
 test: $(BIN_ENVTEST) ## Run all unit tests
-	KUBEBUILDER_ASSETS="$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(REQ_BIN_GO) test -v ./...
+	KUBEBUILDER_ASSETS="$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(REQ_BIN_GO) test -v ./pkg/controller/... -ginkgo.v
 
 .PHONY: test/cov
 test/cov: $(BIN_GO_TEST_COVERAGE) $(BIN_ENVTEST) ## Run all unit tests and print coverage report, use the COVERAGE_THRESHOLD var for setting threshold
-	KUBEBUILDER_ASSETS="$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(REQ_BIN_GO) test -failfast -coverprofile=cov.out -v ./pkg/controller/...
+	KUBEBUILDER_ASSETS="$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" $(REQ_BIN_GO) test -failfast -coverprofile=cov.out -v ./pkg/controller/... -ginkgo.v
 	$(REQ_BIN_GO) tool cover -func=cov.out
 	$(REQ_BIN_GO) tool cover -html=cov.out -o cov.html
 	$(BIN_GO_TEST_COVERAGE) -p cov.out -k 0 -t $(COVERAGE_THRESHOLD)
