@@ -31,9 +31,10 @@ var cmd = &cobra.Command{
 func init() {
 	ctrl := controller.NewDRTriggerController()
 
-	cmd.Flags().StringVar(&ctrl.Options.MetricAddr, "metric-address", ":8080", "TODO")
-	cmd.Flags().StringVar(&ctrl.Options.ProbeAddr, "probe-address", ":8081", "TODO")
-	cmd.Flags().BoolVar(&ctrl.Options.LeaderElection, "leader-election", false, "TODO")
+	cmd.Flags().StringVar(&ctrl.Options.MetricAddr, "metric-address", ":8080", "The address the metric endpoint binds to.")
+	cmd.Flags().StringVar(&ctrl.Options.ProbeAddr, "probe-address", ":8081", "The address the probe endpoint binds to.")
+	cmd.Flags().BoolVar(&ctrl.Options.LeaderElection, "leader-election", false, "Enable leader election for controller manager. "+
+		"Enabling this will ensure there is only one active controller manager.")
 
 	cmd.RunE = ctrl.Run
 }
