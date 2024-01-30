@@ -21,11 +21,11 @@ $(LOCALBUILD):
 #####################################
 ###### Image related variables ######
 #####################################
-IMAGE_BUILDER ?= podman##@ Set a custom image builder if 'podman' is not available
 IMAGE_REGISTRY ?= quay.io##@ Set the image registry, defaults to 'quay.io'
 IMAGE_NAMESPACE ?= ecosystem-appeng##@ Set the image namespace, defaults to 'ecosystem-appeng'
 IMAGE_NAME ?= regional-dr-trigger-operator##@ Set the operator image name, defaults to 'regional-dr-trigger-operator'
 IMAGE_TAG ?= $(strip $(shell cat VERSION))##@ Set the operator image tag, defaults to content of the VERSION file
+IMAGE_BUILDER = podman
 
 ######################################
 ###### Bundle related variables ######
