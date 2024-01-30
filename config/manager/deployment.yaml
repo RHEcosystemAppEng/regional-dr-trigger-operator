@@ -15,8 +15,7 @@ spec:
       containers:
       - name: rdrtrigger
         image: rdrtrigger-image
-        # TODO change to IfNotPresent
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         args:
           - rdrtrigger
           - --leader-election
