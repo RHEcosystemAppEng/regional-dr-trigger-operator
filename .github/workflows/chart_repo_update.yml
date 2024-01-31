@@ -1,0 +1,33 @@
+---
+name: Chart Repository Update
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'config/**'
+      - 'hack/**'
+
+concurrency:
+  group: update-chart
+  cancel-in-progress: true
+
+jobs:
+  dispatch_chart_update_event:
+    runs-on: ubuntu-latest
+    name: Dispatch Event for Chart Repository
+    if: github.repository == 'RHEcosystemAppEng/regional-dr-trigger-operator'
+    environment: update-chart
+    steps:
+      - name: Dispatch event
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.CHART_REPO_PAT }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: "RHEcosystemAppEng",
+              repo: "regional-dr-trigger-operator-chart",
+              event_type: "operator-chart-sources-updated"
+            })
