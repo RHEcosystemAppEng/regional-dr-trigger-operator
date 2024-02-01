@@ -84,6 +84,13 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      # required for caching podman images
+      - name: Tar as root
+        run: |
+          sudo mv -fv /usr/bin/tar /usr/bin/tar.orig
+          echo -e '#!/bin/sh\n\nsudo /usr/bin/tar.orig "$@"' | sudo tee -a /usr/bin/tar
+          sudo chmod +x /usr/bin/tar
+
       - name: Cache podman images
         uses: actions/cache@v4
         with:
