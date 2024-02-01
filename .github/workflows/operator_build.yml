@@ -1,0 +1,101 @@
+---
+name: Operator Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/**'
+      - 'bundle/**'
+      - 'hack/**'
+      - '*.md'
+      - 'MAKEFILE'
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  binary:
+    runs-on: ubuntu-latest
+    name: Build Operator Binary
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Cache tools
+        uses: actions/cache@v4
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ hashFiles('Makefile') }}
+
+      - name: Install go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.20.13
+
+      - name: Verify tidy
+        run: |
+          go mod tidy
+          git diff -s --exit-code
+
+      - name: Lint codebase
+        run: make lint/code lint/licenses
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Build the operator
+        run: make build/operator
+
+  generation:
+    runs-on: ubuntu-latest
+    name: Generate Operator Manifests
+    needs: binary
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Cache tools
+        uses: actions/cache@v4
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ hashFiles('Makefile') }}
+
+      - name: Generate RBAC manifests
+        run: make generate/manifests
+
+      - name: Fail if generated diff
+        run: git diff -s --exit-code
+
+  image:
+    runs-on: ubuntu-latest
+    name: Build Operator Image
+    needs: binary
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Cache podman images
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/containers
+            ~/.config/containers
+          key: ${{ runner.os }}-operator-image-${{ hashFiles('Containerfile') }}
+
+      - name: Lint image file
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Containerfile
+
+      - name: Build container image
+        run: make build/operator/image

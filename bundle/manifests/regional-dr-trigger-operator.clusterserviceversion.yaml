@@ -104,6 +104,7 @@ spec:
                 - --logtostderr=true
                 - --v=0
                 image: gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1
+                imagePullPolicy: IfNotPresent
                 name: kube-rbac-proxy
                 ports:
                 - containerPort: 8383
@@ -127,7 +128,7 @@ spec:
                 - --probe-address=:8081
                 - --metric-address=127.0.0.1:8080
                 image: quay.io/ecosystem-appeng/regional-dr-trigger-operator:0.1.0
-                imagePullPolicy: Always
+                imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
                     path: /healthz

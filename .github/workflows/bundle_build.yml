@@ -1,0 +1,92 @@
+---
+name: Bundle Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'bundle/**'
+      - 'config/**'
+      - 'bundle.Containerfile'
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  generation:
+    runs-on: ubuntu-latest
+    name: Generate Bundle Manifests
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Cache tools
+        uses: actions/cache@v4
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ hashFiles('Makefile') }}
+
+      - name: Install yq
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          source: github
+          yq: 4.40.5
+
+      - name: Save original generated date
+        id: prev_csr
+        run: >
+          echo
+          "created_date=$(yq '.metadata.annotations.createdAt'
+          ./bundle/manifests/regional-dr-trigger-operator.clusterserviceversion.yaml)"
+          >> "$GITHUB_OUTPUT"
+
+      - name: Generate bundle manifests
+        run: make generate/bundle
+
+      - name: Patch back original generated date
+        run: >
+          sed -i 's/createdAt: .*/createdAt: "${{ steps.prev_csr.outputs.created_date }}"/g'
+          ./bundle/manifests/regional-dr-trigger-operator.clusterserviceversion.yaml
+
+      - name: Fail if generated diff
+        run: git diff -s --exit-code
+
+  scorecard:
+    runs-on: ubuntu-latest
+    name: Run Bundle Scorecard
+    needs: generation
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.8.0
+
+      - name: Install operator-sdk
+        run: make $PWD/bin/operator-sdk
+
+      - name: Install olm
+        run: ./bin/operator-sdk olm install
+
+      - name: Run scorecard tests
+        run: make test/bundle
+
+  image:
+    runs-on: ubuntu-latest
+    name: Build Bundle Image
+    needs: generation
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Build container image
+        run: make build/bundle/image

@@ -1,0 +1,57 @@
+---
+name: Chart Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'config/**'
+      - 'hack/**'
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CHART_TARGET: ./chart_build
+
+jobs:
+  chart:
+    runs-on: ubuntu-latest
+    name: Generate and Lint Helm Chart
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Cache tools
+        uses: actions/cache@v4
+        with:
+          path: ./bin
+          key: ${{ runner.os }}-bin-${{ hashFiles('Makefile') }}
+
+      - name: Install yq
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          source: github
+          yq: 4.40.5
+
+      - name: Create chart target
+        run: rm -rf ${{ env.CHART_TARGET }} && mkdir -p ${{ env.CHART_TARGET }}
+
+      - name: Generate chart
+        run: make generate/chart CHART_VERSION=0.0.0 CHART_TARGET=${{ env.CHART_TARGET }}
+
+      - name: Lint chart
+        run: make lint/chart CHART_TARGET=${{ env.CHART_TARGET }}
+
+      - name: Delete chart
+        if: always()
+        run: rm -rf ${{ env.CHART_TARGET }}
