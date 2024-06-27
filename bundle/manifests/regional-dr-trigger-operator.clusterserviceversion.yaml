@@ -4,11 +4,11 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2024-01-20T19:08:51Z"
+    createdAt: "2024-06-27T00:07:38Z"
     operatorframework.io/suggested-namespace: regional-dr-trigger
     operators.operatorframework.io/builder: operator-sdk-v1.33.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-  name: regional-dr-trigger-operator.v0.1.0
+  name: regional-dr-trigger-operator.v0.2.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -72,11 +72,11 @@ spec:
       deployments:
       - label:
           app.kubernetes.io/component: operator
-          app.kubernetes.io/instance: rdrtrigger-0.1.0
+          app.kubernetes.io/instance: rdrtrigger-0.2.0
           app.kubernetes.io/managed-by: kustomize
           app.kubernetes.io/name: regional-dr-trigger-operator
           app.kubernetes.io/part-of: regional-dr-trigger-operator
-          app.kubernetes.io/version: 0.1.0
+          app.kubernetes.io/version: 0.2.0
         name: regional-dr-trigger-operator
         spec:
           replicas: 1
@@ -91,11 +91,11 @@ spec:
                 kubectl.kubernetes.io/default-container: rdrtrigger
               labels:
                 app.kubernetes.io/component: operator
-                app.kubernetes.io/instance: rdrtrigger-0.1.0
+                app.kubernetes.io/instance: rdrtrigger-0.2.0
                 app.kubernetes.io/managed-by: kustomize
                 app.kubernetes.io/name: regional-dr-trigger-operator
                 app.kubernetes.io/part-of: regional-dr-trigger-operator
-                app.kubernetes.io/version: 0.1.0
+                app.kubernetes.io/version: 0.2.0
             spec:
               containers:
               - args:
@@ -127,7 +127,7 @@ spec:
                 - --leader-election
                 - --probe-address=:8081
                 - --metric-address=127.0.0.1:8080
-                image: quay.io/ecosystem-appeng/regional-dr-trigger-operator:0.1.0
+                image: quay.io/ecosystem-appeng/regional-dr-trigger-operator:0.2.0
                 imagePullPolicy: IfNotPresent
                 livenessProbe:
                   httpGet:
@@ -183,4 +183,4 @@ spec:
   minKubeVersion: 1.27.0
   provider:
     name: Red Hat
-  version: 0.1.0
+  version: 0.2.0
