@@ -11,8 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
 
-// This file hosts tests cases for unit testing predicates.
-
 var _ = Context("Testing predicate functions", func() {
 	DescribeTable("Invoking acceptedByHub", func(mc *clusterv1.ManagedCluster, expected bool) {
 		Expect(acceptedByHub()(mc)).To(Equal(expected))

@@ -2,8 +2,6 @@
 
 package controller
 
-// This file hosts tests cases for unit testing the reconciliation loop.
-
 import (
 	"encoding/json"
 	. "github.com/onsi/ginkgo/v2"

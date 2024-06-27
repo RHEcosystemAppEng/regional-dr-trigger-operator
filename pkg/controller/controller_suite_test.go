@@ -2,8 +2,6 @@
 
 package controller
 
-// This file sets up the testing suite for testing the reconciliation loop.
-
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -13,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
+	"regional-dr-trigger-operator/pkg/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"testing"
@@ -21,7 +20,7 @@ import (
 var testClient client.Client
 var testEnv *envtest.Environment
 
-var sut *DRTriggerReconciler
+var sut *DRTriggerController
 
 // TestController is used for bootstrapping Ginkgo and Gomega
 func TestController(t *testing.T) {
@@ -37,7 +36,7 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 
 	// install the scheme
 	scheme := runtime.NewScheme()
-	Expect(installTypes(scheme)).To(Succeed())
+	Expect(utils.InstallTypes(scheme)).To(Succeed())
 	Expect(corev1.AddToScheme(scheme)) // i.e. Namespace
 
 	// start testing environment and get config for the client
@@ -51,7 +50,7 @@ var _ = BeforeSuite(func(ctx SpecContext) {
 	Expect(testClient).NotTo(BeNil())
 
 	// set the reconciler as the subject under test
-	sut = &DRTriggerReconciler{Scheme: testClient.Scheme(), Client: testClient}
+	sut = &DRTriggerController{Scheme: testClient.Scheme(), Client: testClient}
 
 	// create testing namespaces
 	Expect(testClient.Create(ctx, testNamespace1)).To(Succeed())

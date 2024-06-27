@@ -2,98 +2,144 @@
 
 package controller
 
-// This file hosts functions and types for instantiating the DRTriggerController.
-
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	ramenv1alpha1 "github.com/ramendr/ramen/api/v1alpha1"
-	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	"regional-dr-trigger-operator/pkg/metrics"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
-// DRTriggerController is a receiver representing the controller. It encapsulates a DRTriggerControllerOptions which
-// will be used to configure the controller run. Use NewDRTriggerController for instantiation.
+// okToFailoverStates is a fixed array listing the state a DRPlacementControl needs to be in for us to initiate a failover.
+var okToFailoverStates = [...]ramenv1alpha1.DRState{ramenv1alpha1.Deploying, ramenv1alpha1.Deployed, ramenv1alpha1.Relocated}
+
+// DRTriggerController is a receiver representing the DRTriggerOperator controller for ManagedCluster CRs
 type DRTriggerController struct {
-	Options *DRTriggerControllerOptions
+	client.Client
+	Scheme *runtime.Scheme
 }
 
-// DRTriggerControllerOptions is used for encapsulating the various options for configuring the controller run.
-type DRTriggerControllerOptions struct {
-	MetricAddr     string
-	LeaderElection bool
-	ProbeAddr      string
+// SetupWithManager is used for setting up the controller. Using Predicates for filtering, only accepting
+// ManagedCluster eligible for failing over
+func (r *DRTriggerController) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		Named("regional-dr-trigger-controller").
+		For(&clusterv1.ManagedCluster{}).
+		WithEventFilter(verifyManagedCluster(acceptedByHub())).
+		WithEventFilter(verifyManagedCluster(joinedHub())).
+		WithEventFilter(verifyManagedCluster(notAvailable())).
+		Complete(r)
 }
 
-// NewDRTriggerController is used as a factory for creating a DRTriggerController instance.
-func NewDRTriggerController() DRTriggerController {
-	return DRTriggerController{Options: &DRTriggerControllerOptions{}}
+// +kubebuilder:rbac:groups="",resources=events,verbs=create
+// +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update
+// +kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;watch;list
+// +kubebuilder:rbac:groups=ramendr.openshift.io,resources=drplacementcontrols,verbs=get;watch;list;patch
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=get;create
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+
+// Reconcile is watching ManagedClusters and will trigger a DRPlacementControl failover. Note, not eligible
+// events for failover. i.e., the cluster is not accepted by the hub, hasn't joined the hub, or is available. // Are
+// filtered out by event filtering Predicates.
+func (r *DRTriggerController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx).WithName("mc-controller")
+	ctx = log.IntoContext(ctx, logger)
+
+	// the name in the request is the managed cluster name and cluster-namespace name.
+	mcName := req.Name
+	logger.V(1).Info(fmt.Sprintf("got request for ManagedCluster %s", mcName))
+
+	// fetch all DRPlacementControl in the Hub Cluster
+	drControls := &ramenv1alpha1.DRPlacementControlList{}
+	if err := r.Client.List(ctx, drControls); err != nil {
+		logger.Error(err, "failed to fetch DRPlacementControlsList")
+		return ctrl.Result{}, err
+	}
+
+	failuresFound := false
+	// iterate over DRPlacementControls and cherry-pick ones that belongs to the current Managed Cluster
+	for _, drControl := range drControls.Items {
+		// check if the current DRPlacementControl runs for the triggering ManagedCluster
+		if drControl.Status.PreferredDecision.ClusterName == mcName {
+			logger.V(1).Info(fmt.Sprintf("found dr control %s for managed cluster %s", drControl.Name, mcName))
+			// check if a failover instruction was already recorded
+			if drControl.Spec.Action != ramenv1alpha1.ActionFailover {
+				// check if the DRPlacementControl is in a phase suitable for a failover, i.e. Deployed (yes) | Initiating (no)
+				if isPhaseOkForFailover(drControl) {
+					// patch DRPlacementControl and initiate a failover process
+					if err := r.patchDRPlacementControl(ctx, drControl, ramenv1alpha1.ActionFailover); err != nil {
+						logger.Error(err, fmt.Sprintf("failed to patch failover DRPlacementControl %s in %s", drControl.Name, drControl.Namespace))
+						failuresFound = true
+					} else {
+						logger.Info(fmt.Sprintf("succesfully patched DRPlacementControl %s in %s for a failover", drControl.Name, drControl.Namespace))
+						metrics.DRApplicationFailover.WithLabelValues(mcName, drControl.Name, drControl.Namespace).Inc()
+					}
+				} else {
+					logger.V(1).Info(fmt.Sprintf("dr control %s phase %s not suitable for failing over", drControl.Name, drControl.Status.Phase))
+				}
+			} else {
+				logger.V(1).Info(fmt.Sprintf("dr control %s failover already intiaited", drControl.Name))
+			}
+		}
+	}
+
+	if failuresFound {
+		return ctrl.Result{}, fmt.Errorf("failed to failover one or more DR placement controls")
+	}
+
+	return ctrl.Result{}, nil
 }
 
-// Run is used for running the DRTriggerController. It takes a cobra.Command reference and string array of arguments.
-func (c *DRTriggerController) Run(cmd *cobra.Command, args []string) error {
-	ctx := cmd.Context()
-	logger := log.FromContext(ctx)
+// patchDRPlacementControl is used to patch a DRPlacementControl for triggering a failover process
+func (r *DRTriggerController) patchDRPlacementControl(ctx context.Context, control ramenv1alpha1.DRPlacementControl, action ramenv1alpha1.DRAction) error {
+	drControlSubject := types.NamespacedName{Namespace: control.Namespace, Name: control.Name}
 
-	// create and configure the scheme
-	scheme := runtime.NewScheme()
-	if err := installTypes(scheme); err != nil {
-		logger.Error(err, "failed installing types")
+	// check if the peer is ready
+	if !meta.IsStatusConditionTrue(control.Status.Conditions, ramenv1alpha1.ConditionPeerReady) {
+		return fmt.Errorf("attempting to failover %s, peer not ready", drControlSubject.String())
+	}
+
+	// fetch the DRPlacementControl
+	drControlObj := &ramenv1alpha1.DRPlacementControl{}
+	if err := r.Client.Get(ctx, drControlSubject, drControlObj); err != nil {
 		return err
 	}
 
-	// create a manager
-	kubeConfig := config.GetConfigOrDie()
-	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
-		Scheme:                 scheme,
-		Logger:                 logger,
-		LeaderElection:         c.Options.LeaderElection,
-		LeaderElectionID:       "regional-dr-trigger-operator-leader-election-id",
-		Metrics:                server.Options{BindAddress: c.Options.MetricAddr},
-		HealthProbeBindAddress: c.Options.ProbeAddr,
-		BaseContext:            func() context.Context { return ctx },
-	})
+	// create the failover action patch
+	failoverPatch := &ramenv1alpha1.DRPlacementControl{
+		Spec: ramenv1alpha1.DRPlacementControlSpec{
+			Action: action,
+		},
+	}
+
+	// serialize the patch
+	rawPatch, err := json.Marshal(failoverPatch)
 	if err != nil {
-		logger.Error(err, "failed creating k8s manager")
 		return err
 	}
 
-	// set up the reconciler
-	reconciler := &DRTriggerReconciler{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
-	if err = reconciler.SetupWithManager(mgr); err != nil {
-		logger.Error(err, "failed setting up the reconciler")
+	// patch the DRPlacementControl for with the failover patch
+	if err = r.Client.Patch(ctx, drControlObj, client.RawPatch(types.MergePatchType, rawPatch)); err != nil {
 		return err
 	}
 
-	// configure health checks
-	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		logger.Error(err, "failed setting up health check")
-		return err
-	}
-	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		logger.Error(err, "failed setting up ready check")
-		return err
-	}
-
-	// start the manager, blocking
-	return mgr.Start(ctx)
+	return nil
 }
 
-// installTypes is used for installing all the required types with a scheme.
-func installTypes(scheme *runtime.Scheme) error {
-	// required for ManagedCluster
-	if err := clusterv1.Install(scheme); err != nil {
-		return fmt.Errorf("failed installing ocm's types into the scheme, %v", err)
+// isPhaseOkForFailover is a utility function that returns true if the DRPlacementControl.Status.Spec is in a state
+// allowed for failing over. i.e., Deployed.
+func isPhaseOkForFailover(control ramenv1alpha1.DRPlacementControl) bool {
+	for _, state := range okToFailoverStates {
+		if state == control.Status.Phase {
+			return true
+		}
 	}
-	// required for DRPlacementControl
-	if err := ramenv1alpha1.AddToScheme(scheme); err != nil {
-		return fmt.Errorf("failed installing ramen's types into the scheme, %v", err)
-	}
-	return nil
+	return false
 }
