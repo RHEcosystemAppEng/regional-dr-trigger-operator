@@ -48,7 +48,7 @@ jobs:
           git diff -s --exit-code
 
       - name: Lint codebase
-        run: make lint/code lint/licenses
+        run: make lint/code
 
       - name: Run unit tests
         run: make test

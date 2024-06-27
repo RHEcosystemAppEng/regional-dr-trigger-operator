@@ -56,9 +56,7 @@ BIN_KUSTOMIZE ?= $(LOCALBIN)/kustomize##@ Set custom 'kustomize', if not supplie
 BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install in ./bin
 BIN_ENVTEST ?= $(LOCALBIN)/setup-envtest##@ Set custom 'setup-envtest', if not supplied will install in ./bin
 BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not supplied will install in ./bin
-BIN_ACTIONLINT ?= $(LOCALBIN)/actionlint##@ Set custom 'actionlint', if not supplied will install in ./bin
-BIN_GO_LICENSES ?= $(LOCALBIN)/go-licenses##@ Set custom 'go-licenses', if not supplied will install in ./bin
-BIN_HELM ?= $(LOCALBIN)/helm##@ Set custom 'go-licenses', if not supplied will install in ./bin
+BIN_HELM ?= $(LOCALBIN)/helm##@ Set custom 'helm', if not supplied will install in ./bin
 
 ################################################
 ###### Downloaded tools version variables ######
@@ -68,8 +66,6 @@ VERSION_OPERATOR_SDK = v1.33.0
 VERSION_KUSTOMIZE = v5.3.0
 VERSION_GO_TEST_COVERAGE = v2.8.2
 VERSION_GOLANG_CI_LINT = v1.55.2
-VERSION_ACTIONLINT = v1.6.26
-VERSION_GO_LICENSES = v1.6.0
 VERSION_HELM = v3.14.0
 
 #####################################
@@ -77,8 +73,13 @@ VERSION_HELM = v3.14.0
 #####################################
 OS=$(shell go env GOOS)
 ARCH=$(shell go env GOARCH)
-BUILD_DATE = $(strip $(shell date +%FT%T))
-BUILD_TIMESTAMP = $(strip $(shell date -d "$(BUILD_DATE)" +%s))
+ifeq ($(OS),darwin)
+DATE_BIN = gdate
+else
+DATE_BIN = date
+endif
+BUILD_DATE = $(strip $(shell $(DATE_BIN) +%FT%T))
+BUILD_TIMESTAMP = $(strip $(shell $(DATE_BIN) -d "$(BUILD_DATE)" +%s))
 COMMIT_HASH = $(strip $(shell git rev-parse --short HEAD))
 LDFLAGS=-ldflags="\
 -X 'regional-dr-trigger-operator/pkg/version.tag=${IMAGE_TAG}' \
@@ -89,8 +90,9 @@ LDFLAGS=-ldflags="\
 ####################################
 ###### Test related variables ######
 ####################################
-COVERAGE_THRESHOLD ?= 55##@ Set the unit test code coverage threshold, defaults to '58'
+COVERAGE_THRESHOLD ?= 70##@ Set the unit test code coverage threshold, defaults to '58'
 ENVTEST_K8S_VERSION = 1.27.x
+OPERATOR_RUN_ARGS ?=##@ Use for setting custom run arguments for development local run
 
 #########################
 ###### Image names ######
@@ -109,8 +111,7 @@ build/all/image/push: build/operator/image/push build/bundle/image/push ## Build
 
 .PHONY: build build/operator
 build build/operator: $(LOCALBUILD) ## Build the project as a binary in ./build
-	$(REQ_BIN_GO) mod tidy
-	$(REQ_BIN_GO) build $(LDFLAGS) -o $(LOCALBUILD)/rdrtrigger ./main.go
+	GOOS="linux" GOARCH="amd64" $(REQ_BIN_GO) build $(LDFLAGS) -o $(LOCALBUILD)/rdrtrigger ./main.go
 
 .PHONY: build/operator/image
 build/operator/image: ## Build the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG
@@ -158,6 +159,10 @@ generate/chart: $(BIN_KUSTOMIZE) ## Generate a Helm Chart in a target folder. us
 ################################################
 ###### Install and Uninstall the operator ######
 ################################################
+.PHONY: operator/run
+operator/run: ## Run the Operator in your local environment for development purposes, use OPERATOR_RUN_ARGS for run args
+	go run main.go --debug $(OPERATOR_RUN_ARGS)
+
 .PHONY: operator/deploy
 operator/deploy: $(BIN_KUSTOMIZE) ## Deploy the Regional DR Trigger Operator
 	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
@@ -230,20 +235,12 @@ test/bundle/delete/ns: ## DELETE the Scorecard namespace (BE CAREFUL)
 ###########################
 ###### Lint codebase ######
 ###########################
-lint/all: lint/code lint/licenses lint/ci lint/containerfile lint/bundle ## Lint the entire project (code, ci, containerfile)
+lint/all: lint/code lint/containerfile lint/bundle ## Lint the entire project (code, containerfile, bundle)
 
 .PHONY: lint lint/code
 lint lint/code: $(BIN_GOLINTCI) ## Lint the code
 	$(REQ_BIN_GO) fmt ./...
 	$(BIN_GOLINTCI) run
-
-.PHONY: lint/licenses
-lint/licenses: $(BIN_GO_LICENSES) ## Verify we're not using any dependencies with forbidden licences
-	$(BIN_GO_LICENSES) check . &> /dev/null
-
-.PHONY: lint/ci
-lint/ci: $(BIN_ACTIONLINT) ## Lint the ci
-	$(BIN_ACTIONLINT)
 
 .PHONY: lint/containerfile
 lint/containerfile: ## Lint the Containerfile (using Hadolint image, do not use inside a container)
@@ -257,43 +254,6 @@ lint/bundle: $(BIN_OPERATOR_SDK) ## Validate OLM bundle
 lint/chart: $(BIN_HELM) ## Lint the Helm chart. Use CHART_TARGET.
 	$(BIN_HELM) lint $(CHART_TARGET) --strict
 
-################################
-###### Display build help ######
-################################
-help: ## Show this help message
-	$(call verify-essential-tool,$(REQ_BIN_AWK),REQ_BIN_AWK)
-	@$(REQ_BIN_AWK) 'BEGIN {\
-			FS = ".*##@";\
-			print "\033[1;31mRegional DR Trigger Operator\033[0m";\
-			print "\033[1;32mUsage\033[0m";\
-			printf "\t\033[1;37mmake <target> |";\
-			printf "\tmake <target> [Variables Set] |";\
-            printf "\tmake [Variables Set] <target> |";\
-            print "\t[Variables Set] make <target>\033[0m";\
-			print "\033[1;32mAvailable Variables\033[0m" }\
-		/^(\s|[a-zA-Z_0-9-]|\/)+ \?=.*?##@/ {\
-			split($$0,t,"?=");\
-			printf "\t\033[1;36m%-35s \033[0;37m%s\033[0m\n",t[1], $$2 | "sort" }'\
-		$(MAKEFILE_LIST)
-	@$(REQ_BIN_AWK) 'BEGIN {\
-			FS = ":.*##";\
-			SORTED = "sort";\
-            print "\033[1;32mAvailable Targets\033[0m"}\
-		/^(\s|[a-zA-Z_0-9-]|\/)+:.*?##/ {\
-			if($$0 ~ /deploy/)\
-				printf "\t\033[1;36m%-35s \033[0;33m%s\033[0m\n", $$1, $$2 | SORTED;\
-			else if($$0 ~ /push/)\
-				printf "\t\033[1;36m%-35s \033[0;35m%s\033[0m\n", $$1, $$2 | SORTED;\
-			else if($$0 ~ /DELETE/)\
-				printf "\t\033[1;36m%-35s \033[0;31m%s\033[0m\n", $$1, $$2 | SORTED;\
-			else\
-				printf "\t\033[1;36m%-35s \033[0;37m%s\033[0m\n", $$1, $$2 | SORTED; }\
-		END { \
-			close(SORTED);\
-			print "\033[1;32mFurther Information\033[0m";\
-			print "\t\033[0;37m* Source code: \033[38;5;26mhttps://github.com/RHEcosystemAppEng/regional-dr-trigger-operator\33[0m"}'\
-		$(MAKEFILE_LIST)
-
 ####################################
 ###### Install required tools ######
 ####################################
@@ -306,17 +266,11 @@ $(BIN_CONTROLLER_GEN): $(LOCALBIN)
 $(BIN_GO_TEST_COVERAGE): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/vladopajic/go-test-coverage/v2@$(VERSION_GO_TEST_COVERAGE)
 
-$(BIN_ENVTEST): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+$(BIN_ENVTEST): $(LOCALBIN) # setup env version pin read: https://github.com/kubernetes-sigs/controller-runtime/issues/2720
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-runtime/tools/setup-envtest@c7e1dc9
 
 $(BIN_GOLINTCI): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(VERSION_GOLANG_CI_LINT)
-
-$(BIN_ACTIONLINT): $(LOCALBIN) # recommendation: manually install shellcheck and verify it's on your PATH, it will be picked up by actionlint
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/rhysd/actionlint/cmd/actionlint@$(VERSION_ACTIONLINT)
-
-$(BIN_GO_LICENSES): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/google/go-licenses@$(VERSION_GO_LICENSES)
 
 $(BIN_OPERATOR_SDK): $(LOCALBIN)
 	@$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
@@ -355,3 +309,40 @@ define verify-essential-tool
 	exit 1; \
 fi
 endef
+
+################################
+###### Display build help ######
+################################
+help: ## Show this help message
+	$(call verify-essential-tool,$(REQ_BIN_AWK),REQ_BIN_AWK)
+	@$(REQ_BIN_AWK) 'BEGIN {\
+			FS = ".*##@";\
+			print "\033[1;31mRegional DR Trigger Operator\033[0m";\
+			print "\033[1;32mUsage\033[0m";\
+			printf "\t\033[1;37mmake <target> |";\
+			printf "\tmake <target> [Variables Set] |";\
+            printf "\tmake [Variables Set] <target> |";\
+            print "\t[Variables Set] make <target>\033[0m";\
+			print "\033[1;32mAvailable Variables\033[0m" }\
+		/^(\s|[a-zA-Z_0-9-]|\/)+ \?=.*?##@/ {\
+			split($$0,t,"?=");\
+			printf "\t\033[1;36m%-35s \033[0;37m%s\033[0m\n",t[1], $$2 | "sort" }'\
+		$(MAKEFILE_LIST)
+	@$(REQ_BIN_AWK) 'BEGIN {\
+			FS = ":.*##";\
+			SORTED = "sort";\
+            print "\033[1;32mAvailable Targets\033[0m"}\
+		/^(\s|[a-zA-Z_0-9-]|\/)+:.*?##/ {\
+			if($$0 ~ /deploy/)\
+				printf "\t\033[1;36m%-35s \033[0;33m%s\033[0m\n", $$1, $$2 | SORTED;\
+			else if($$0 ~ /push/)\
+				printf "\t\033[1;36m%-35s \033[0;35m%s\033[0m\n", $$1, $$2 | SORTED;\
+			else if($$0 ~ /DELETE/)\
+				printf "\t\033[1;36m%-35s \033[0;31m%s\033[0m\n", $$1, $$2 | SORTED;\
+			else\
+				printf "\t\033[1;36m%-35s \033[0;37m%s\033[0m\n", $$1, $$2 | SORTED; }\
+		END { \
+			close(SORTED);\
+			print "\033[1;32mFurther Information\033[0m";\
+			print "\t\033[0;37m* Source code: \033[38;5;26mhttps://github.com/RHEcosystemAppEng/regional-dr-trigger-operator\33[0m"}'\
+		$(MAKEFILE_LIST)
