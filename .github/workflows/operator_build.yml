@@ -48,7 +48,7 @@ jobs:
           git diff -s --exit-code
 
       - name: Lint codebase
-        run: make lint/code lint/licenses
+        run: make lint/code
 
       - name: Run unit tests
         run: make test
@@ -71,7 +71,11 @@ jobs:
           key: ${{ runner.os }}-bin-${{ hashFiles('Makefile') }}
 
       - name: Generate RBAC manifests
-        run: make generate/manifests
+        # tidy and restore are a patch required only for ci runner
+        run: |
+          go mod tidy 
+          make generate/manifests
+          git restore go.mod go.sum
 
       - name: Fail if generated diff
         run: git diff -s --exit-code

@@ -7,7 +7,7 @@ resources:
   - ../manager
 images:
   - name: rdrtrigger-image
-    newName: quay.io/ecosystem-appeng/regional-dr-trigger-operator
+    newName: rdrtrigger-image
     newTag: 0.1.0
 replicas:
   - count: 1

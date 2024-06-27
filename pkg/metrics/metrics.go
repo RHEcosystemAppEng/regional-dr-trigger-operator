@@ -2,8 +2,6 @@
 
 package metrics
 
-// This file contains various metrics for use throughout the project.
-
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
@@ -20,7 +18,6 @@ var DRApplicationFailover = *prometheus.NewCounterVec(prometheus.CounterOpts{
 	Help: "Counter for DR Applications failover initiated by the Regional DR Trigger Operator",
 }, []string{DRClusterName, DRControlName, DRApplicationName})
 
-// init is registering the metrics with K8S registry.
 func init() {
 	metrics.Registry.MustRegister(DRApplicationFailover)
 }

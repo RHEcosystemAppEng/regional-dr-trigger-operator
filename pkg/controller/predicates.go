@@ -2,8 +2,6 @@
 
 package controller
 
-// This file contains predicates related functions for use as filters for controller events.
-
 import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
