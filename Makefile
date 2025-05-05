@@ -61,12 +61,13 @@ BIN_HELM ?= $(LOCALBIN)/helm##@ Set custom 'helm', if not supplied will install 
 ################################################
 ###### Downloaded tools version variables ######
 ################################################
-VERSION_CONTROLLER_GEN = v0.14.0
-VERSION_OPERATOR_SDK = v1.33.0
-VERSION_KUSTOMIZE = v5.3.0
+VERSION_CONTROLLER_GEN = v0.16.5
+VERSION_OPERATOR_SDK = v1.39.2
+VERSION_KUSTOMIZE = v5.6.0
 VERSION_GO_TEST_COVERAGE = v2.8.2
-VERSION_GOLANG_CI_LINT = v1.55.2
-VERSION_HELM = v3.14.0
+VERSION_GOLANG_CI_LINT = v1.59.1
+VERSION_HELM = v3.17.0
+VERSION_ENVTEST = release-0.20
 
 #####################################
 ###### Build related variables ######
@@ -91,7 +92,7 @@ LDFLAGS=-ldflags="\
 ###### Test related variables ######
 ####################################
 COVERAGE_THRESHOLD ?= 70##@ Set the unit test code coverage threshold, defaults to '58'
-ENVTEST_K8S_VERSION = 1.27.x
+ENVTEST_K8S_VERSION = 1.31.x
 OPERATOR_RUN_ARGS ?=##@ Use for setting custom run arguments for development local run
 
 #########################
@@ -240,7 +241,7 @@ lint/all: lint/code lint/containerfile lint/bundle ## Lint the entire project (c
 .PHONY: lint lint/code
 lint lint/code: $(BIN_GOLINTCI) ## Lint the code
 	$(REQ_BIN_GO) fmt ./...
-	$(BIN_GOLINTCI) run --timeout 10m
+	$(BIN_GOLINTCI) run --timeout 5m
 
 .PHONY: lint/containerfile
 lint/containerfile: ## Lint the Containerfile (using Hadolint image, do not use inside a container)
@@ -266,8 +267,8 @@ $(BIN_CONTROLLER_GEN): $(LOCALBIN)
 $(BIN_GO_TEST_COVERAGE): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/vladopajic/go-test-coverage/v2@$(VERSION_GO_TEST_COVERAGE)
 
-$(BIN_ENVTEST): $(LOCALBIN) # setup env version pin read: https://github.com/kubernetes-sigs/controller-runtime/issues/2720
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-runtime/tools/setup-envtest@c7e1dc9
+$(BIN_ENVTEST): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(VERSION_ENVTEST)
 
 $(BIN_GOLINTCI): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(VERSION_GOLANG_CI_LINT)
@@ -277,9 +278,15 @@ $(BIN_OPERATOR_SDK): $(LOCALBIN)
 	$(REQ_BIN_CURL) -sSLo $(BIN_OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(VERSION_OPERATOR_SDK)/operator-sdk_$(OS)_$(ARCH)
 	chmod +x $(BIN_OPERATOR_SDK)
 
+ifeq ($(OS),darwin)
+WILDCARD = '*/helm'
+else
+WILDCARD = --wildcards '*/helm'
+endif
+
 $(BIN_HELM): $(LOCALBIN)
 	@$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
-	$(REQ_BIN_CURL) -sSL https://get.helm.sh/helm-$(VERSION_HELM)-$(OS)-$(ARCH).tar.gz | tar xzf - -C $(LOCALBIN) --strip-components=1 --wildcards '*/helm'
+	$(REQ_BIN_CURL) -sSL https://get.helm.sh/helm-$(VERSION_HELM)-$(OS)-$(ARCH).tar.gz | tar xzf - -C $(LOCALBIN) --strip-components=1 $(WILDCARD)
 
 ###############################
 ###### Utility functions ######

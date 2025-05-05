@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.20 as builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.22 as builder
 
 USER root
 WORKDIR /rdrtrigger
@@ -7,7 +7,7 @@ COPY . .
 RUN make build LOCALBUILD=internal_build
 USER default
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.3
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5
 
 USER root
 COPY --from=builder /rdrtrigger/internal_build/rdrtrigger /usr/bin/rdrtrigger
