@@ -22,7 +22,7 @@ var okToFailoverStates = [...]ramenv1alpha1.DRState{ramenv1alpha1.Deploying, ram
 
 // DRTriggerController is a receiver representing the DRTriggerOperator controller for ManagedCluster CRs
 type DRTriggerController struct {
-	client.Client
+	Client client.Client
 	Scheme *runtime.Scheme
 }
 

@@ -6,7 +6,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	ramenv1alpha1 "github.com/ramendr/ramen/api/v1alpha1"
-	plv1 "github.com/stolostron/multicloud-operators-placementrule/pkg/apis/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -83,7 +82,7 @@ var testNamespace2 = &corev1.Namespace{
 func statusForPatching(preferredCluster string, controlPhase ramenv1alpha1.DRState, peerReadyStatus metav1.ConditionStatus) *ramenv1alpha1.DRPlacementControl {
 	return &ramenv1alpha1.DRPlacementControl{
 		Status: ramenv1alpha1.DRPlacementControlStatus{
-			PreferredDecision: plv1.PlacementDecision{
+			PreferredDecision: ramenv1alpha1.PlacementDecision{
 				ClusterName: preferredCluster,
 			},
 			Phase: controlPhase,

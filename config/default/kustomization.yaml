@@ -7,8 +7,8 @@ resources:
   - ../manager
 images:
   - name: rdrtrigger-image
-    newName: rdrtrigger-image
-    newTag: 0.1.0
+    newName: quay.io/ecosystem-appeng/regional-dr-trigger-operator
+    newTag: 0.2.0
 replicas:
   - count: 1
     name: operator
@@ -23,7 +23,7 @@ labels:
       app.kubernetes.io/part-of: regional-dr-trigger-operator
   - includeTemplates: true
     pairs:
-      app.kubernetes.io/instance: rdrtrigger-0.1.0
+      app.kubernetes.io/instance: rdrtrigger-0.2.0
       app.kubernetes.io/managed-by: kustomize
       app.kubernetes.io/name: regional-dr-trigger-operator
-      app.kubernetes.io/version: 0.1.0
+      app.kubernetes.io/version: 0.2.0
