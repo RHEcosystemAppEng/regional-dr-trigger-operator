@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
-    createdAt: "2025-05-05T19:30:36Z"
+    createdAt: "2025-05-05T23:19:12Z"
     operatorframework.io/suggested-namespace: regional-dr-trigger
     operators.operatorframework.io/builder: operator-sdk-v1.39.2
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
