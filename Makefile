@@ -67,7 +67,7 @@ VERSION_KUSTOMIZE = v5.6.0
 VERSION_GO_TEST_COVERAGE = v2.8.2
 VERSION_GOLANG_CI_LINT = v1.59.1
 VERSION_HELM = v3.17.0
-VERSION_ENVTEST = release-0.20
+VERSION_ENVTEST = release-0.19
 
 #####################################
 ###### Build related variables ######
