@@ -77,6 +77,11 @@ jobs:
       - name: Install olm
         run: ./bin/operator-sdk olm install
 
+      - name: Install oc
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: latest
+
       - name: Run scorecard tests
         run: make test/bundle
 

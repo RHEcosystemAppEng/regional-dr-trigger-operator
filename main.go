@@ -39,6 +39,11 @@ func init() {
 		"debug",
 		false,
 		"Enable debug logging")
+	cmd.Flags().BoolVar(
+		&oper.Options.MetricsSecure,
+		"metrics-secure",
+		true,
+		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
 
 	cmd.RunE = oper.Run
 	cmd.Version = version.Get().String()

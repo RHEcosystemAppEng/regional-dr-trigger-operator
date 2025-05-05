@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
@@ -26,6 +27,7 @@ type DRTriggerOperatorOptions struct {
 	LeaderElection bool
 	ProbeAddr      string
 	Debug          bool
+	MetricsSecure  bool
 }
 
 // NewDRTriggerOperator is a factory function for creating a regional dr trigger operator instance
@@ -47,6 +49,12 @@ func (c *DRTriggerOperator) Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// configure metrics
+	metricsOpts := server.Options{BindAddress: c.Options.MetricAddr, SecureServing: c.Options.MetricsSecure}
+	if c.Options.MetricsSecure {
+		metricsOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
+	}
+
 	// create the manager
 	kubeConfig := config.GetConfigOrDie()
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
@@ -54,7 +62,7 @@ func (c *DRTriggerOperator) Run(cmd *cobra.Command, args []string) error {
 		Logger:                 logger,
 		LeaderElection:         c.Options.LeaderElection,
 		LeaderElectionID:       "regional-dr-trigger-operator-leader-election-id",
-		Metrics:                server.Options{BindAddress: c.Options.MetricAddr},
+		Metrics:                metricsOpts,
 		HealthProbeBindAddress: c.Options.ProbeAddr,
 	})
 	if err != nil {

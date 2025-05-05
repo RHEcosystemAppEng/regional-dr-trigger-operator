@@ -240,7 +240,7 @@ lint/all: lint/code lint/containerfile lint/bundle ## Lint the entire project (c
 .PHONY: lint lint/code
 lint lint/code: $(BIN_GOLINTCI) ## Lint the code
 	$(REQ_BIN_GO) fmt ./...
-	$(BIN_GOLINTCI) run
+	$(BIN_GOLINTCI) run --timeout 10m
 
 .PHONY: lint/containerfile
 lint/containerfile: ## Lint the Containerfile (using Hadolint image, do not use inside a container)

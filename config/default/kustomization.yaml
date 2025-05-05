@@ -14,7 +14,6 @@ replicas:
     name: operator
 components:
   - ../components/prometheus
-  - ../components/metrics_proxy
 # the following are being patched by Makefile
 labels:
   - includeSelectors: true
