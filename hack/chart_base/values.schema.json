@@ -9,16 +9,12 @@
             "type": "object",
             "required": [
                 "replicas",
-                "kube_rbac_proxy",
                 "rdrtrigger"
             ],
             "properties": {
                 "replicas": {
                     "type": "integer",
                     "minimum": 1
-                },
-                "kube_rbac_proxy": {
-                    "$ref": "#/$defs/container"
                 },
                 "rdrtrigger": {
                     "$ref": "#/$defs/container"
