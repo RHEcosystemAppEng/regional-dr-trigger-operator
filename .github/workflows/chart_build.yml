@@ -41,7 +41,7 @@ jobs:
         uses: redhat-actions/openshift-tools-installer@v1
         with:
           source: github
-          yq: 4.40.5
+          yq: latest
 
       - name: Create chart target
         run: rm -rf ${{ env.CHART_TARGET }} && mkdir -p ${{ env.CHART_TARGET }}
