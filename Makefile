@@ -61,13 +61,13 @@ BIN_HELM ?= $(LOCALBIN)/helm##@ Set custom 'helm', if not supplied will install 
 ################################################
 ###### Downloaded tools version variables ######
 ################################################
-VERSION_CONTROLLER_GEN = v0.16.5
+VERSION_CONTROLLER_GEN = v0.17.3
 VERSION_OPERATOR_SDK = v1.39.2
 VERSION_KUSTOMIZE = v5.6.0
-VERSION_GO_TEST_COVERAGE = v2.8.2
-VERSION_GOLANG_CI_LINT = v1.59.1
+VERSION_GO_TEST_COVERAGE = v2.12.0
+VERSION_GOLANG_CI_LINT = v2.1.6
 VERSION_HELM = v3.17.0
-VERSION_ENVTEST = release-0.19
+VERSION_ENVTEST = release-0.20
 
 #####################################
 ###### Build related variables ######
@@ -277,7 +277,7 @@ $(BIN_ENVTEST): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(VERSION_ENVTEST)
 
 $(BIN_GOLINTCI): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(VERSION_GOLANG_CI_LINT)
+	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(VERSION_GOLANG_CI_LINT)
 
 $(BIN_OPERATOR_SDK): $(LOCALBIN)
 	@$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
