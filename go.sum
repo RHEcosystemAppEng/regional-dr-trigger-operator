@@ -110,8 +110,8 @@ github.com/prometheus/common v0.62.0 h1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ
 github.com/prometheus/common v0.62.0/go.mod h1:vyBcEuLSvWos9B1+CyL7JZ2up+uFzXhkqml0W5zIY1I=
 github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
 github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
-github.com/ramendr/ramen/api v0.0.0-20240924121439-b7cba82de417 h1:JzU7Lf5i73fuGRxZ6uDOXaToHXaTlwVSJ/yllmlXNJE=
-github.com/ramendr/ramen/api v0.0.0-20240924121439-b7cba82de417/go.mod h1:nO6VM/+PEhcPGyFIQJdhY6ip822cA61PAy/s6IjenAA=
+github.com/ramendr/ramen/api v0.0.0-20250529135524-10cd07136e99 h1:0IqhGarcYLi0PbuQK/2yeiGylK8P0ADfpH+NXSaQZFg=
+github.com/ramendr/ramen/api v0.0.0-20250529135524-10cd07136e99/go.mod h1:vtuEN3pI8SD0WEp5jAPf2Bqi/3CeiuQZkNz6F52NIqo=
 github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU5NdKM8=
 github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=

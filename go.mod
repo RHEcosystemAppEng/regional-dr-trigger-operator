@@ -1,12 +1,14 @@
 module regional-dr-trigger-operator
 
-go 1.23.0
+go 1.23.5
+
+toolchain go1.23.9
 
 require (
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/prometheus/client_golang v1.22.0
-	github.com/ramendr/ramen/api v0.0.0-20240924121439-b7cba82de417
+	github.com/ramendr/ramen/api v0.0.0-20250529135524-10cd07136e99
 	github.com/spf13/cobra v1.9.1
 	k8s.io/api v0.32.5
 	k8s.io/apimachinery v0.32.5
