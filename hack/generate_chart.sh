@@ -26,6 +26,8 @@ transformers_folder=${transformers_folder:-hack/chart_transformers}
 bin_yq=${bin_yq:-yq}
 bin_kustomize=${bin_kustomize:-kustomize}
 bin_sed=${bin_sed:-sed}
+bin_find=${bin_find:-find}
+bin_paste=${bin_paste:-paste}
 app_version=${app_version:-$(<VERSION)}
 
 # required named parameters
@@ -56,12 +58,12 @@ inject_helm_labels(){
 }
 
 # iterate over all base templates and route each to its transformer
-transformers=$(find "$transformers_folder"/*.sh -maxdepth 1 -type f -printf '%f\n')
+transformers=$($bin_find "$transformers_folder"/*.sh -maxdepth 1 -type f -printf '%f\n')
 for temp_template in "$temp_folder"/templates/*.yml; do
     kind=$($bin_yq '.kind' "$temp_template")
     apiVersion=$($bin_yq '.apiVersion' "$temp_template")
     if [[ "$apiVersion" = *"/"* ]]; then
-        ver_dot_group=$(tr '/' $'\n' <<< "$apiVersion" | tac | paste -s -d '.')
+        ver_dot_group=$(tr '/' $'\n' <<< "$apiVersion" | tac | $bin_paste -s -d '.')
         transformer_name="$kind"."$ver_dot_group".sh
         # i.e. Deployment transformer_name will be Deployment.v1.apps.sh
     else

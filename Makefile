@@ -74,11 +74,17 @@ VERSION_ENVTEST = release-0.19
 #####################################
 OS=$(shell go env GOOS)
 ARCH=$(shell go env GOARCH)
+
 ifeq ($(OS),darwin)
 DATE_BIN = gdate
+FIND_BIN = gfind
+PASTE_BIN = gpaste
 else
 DATE_BIN = date
+FIND_BIN = find
+PASTE_BIN = paste
 endif
+
 BUILD_DATE = $(strip $(shell $(DATE_BIN) +%FT%T))
 BUILD_TIMESTAMP = $(strip $(shell $(DATE_BIN) -d "$(BUILD_DATE)" +%s))
 COMMIT_HASH = $(strip $(shell git rev-parse --short HEAD))
@@ -154,7 +160,7 @@ generate/chart: $(BIN_KUSTOMIZE) ## Generate a Helm Chart in a target folder. us
 	@$(call verify-essential-tool,$(REQ_BIN_YQ),REQ_BIN_YQ)
 	@$(call kustomize-setup)
 	./hack/generate_chart.sh --bin_yq $(REQ_BIN_YQ) --bin_kustomize $(BIN_KUSTOMIZE) --bin_sed $(REQ_BIN_SED) \
-	--chart_version $(CHART_VERSION) --target_folder $(CHART_TARGET)
+	--bin_find $(FIND_BIN) --bin_paste $(PASTE_BIN) --chart_version $(CHART_VERSION) --target_folder $(CHART_TARGET)
 	@$(call kustomize-cleanup)
 
 ################################################
