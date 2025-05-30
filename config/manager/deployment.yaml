@@ -14,10 +14,10 @@ spec:
         runAsNonRoot: true
       containers:
       - name: rdrtrigger
-        image: rdrtrigger-image
+        image: controller
         imagePullPolicy: IfNotPresent
         args:
-          - rdrtrigger
+          - manager
           - --leader-election
           - --probe-address=:8081
           - --metric-address=127.0.0.1:8080

@@ -3,27 +3,24 @@ kind: Kustomization
 namespace: regional-dr-trigger
 namePrefix: regional-dr-trigger-
 resources:
-  - ../rbac
-  - ../manager
+- ../rbac
+- ../manager
 images:
-  - name: rdrtrigger-image
-    newName: quay.io/ecosystem-appeng/regional-dr-trigger-operator
-    newTag: 0.2.0
+- name: controller
+  newName: quay.io/ecosystem-appeng/regional-dr-trigger-operator
+  newTag: 0.2.0
 replicas:
-  - count: 1
-    name: operator
+- count: 1
+  name: operator
 components:
-  - ../components/prometheus
-# the following are being patched by Makefile
+- ../components/prometheus
 labels:
-  - includeSelectors: true
-    includeTemplates: true
-    pairs:
-      app.kubernetes.io/component: operator
-      app.kubernetes.io/part-of: regional-dr-trigger-operator
-  - includeTemplates: true
-    pairs:
-      app.kubernetes.io/instance: rdrtrigger-0.2.0
-      app.kubernetes.io/managed-by: kustomize
-      app.kubernetes.io/name: regional-dr-trigger-operator
-      app.kubernetes.io/version: 0.2.0
+- includeSelectors: true
+  includeTemplates: true
+  pairs:
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/part-of: regional-dr-trigger-operator
+- includeTemplates: true
+  pairs:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: regional-dr-trigger-operator

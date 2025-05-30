@@ -8,7 +8,6 @@ on:
       - main
     paths-ignore:
       - '.github/**'
-      - 'bundle/**'
       - 'hack/**'
       - '*.md'
       - 'MAKEFILE'
@@ -48,13 +47,13 @@ jobs:
           git diff -s --exit-code
 
       - name: Lint codebase
-        run: make lint/code
+        run: make lint
 
       - name: Run unit tests
         run: make test
 
       - name: Build the operator
-        run: make build/operator
+        run: make build
 
   generation:
     runs-on: ubuntu-latest
@@ -74,7 +73,7 @@ jobs:
         # tidy and restore are a patch required only for ci runner
         run: |
           go mod tidy 
-          make generate/manifests
+          make generate manifests
           git restore go.mod go.sum
 
       - name: Fail if generated diff
@@ -103,10 +102,5 @@ jobs:
             ~/.config/containers
           key: ${{ runner.os }}-operator-image-${{ hashFiles('Containerfile') }}
 
-      - name: Lint image file
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Containerfile
-
       - name: Build container image
-        run: make build/operator/image
+        run: make container-build

@@ -5,8 +5,8 @@ package main
 import (
 	"github.com/spf13/cobra"
 	"k8s.io/component-base/cli"
-	"regional-dr-trigger-operator/pkg/operator"
-	"regional-dr-trigger-operator/pkg/version"
+	"regional-dr-trigger-operator/internal/operator"
+	"regional-dr-trigger-operator/internal/version"
 )
 
 // command used for running the operator
