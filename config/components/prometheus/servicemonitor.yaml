@@ -2,7 +2,6 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: sm
-  namespace: openshift-monitoring
 spec:
   endpoints:
     - path: /metrics
@@ -10,10 +9,7 @@ spec:
       scheme: https
       bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
       tlsConfig:
-        insecureSkipVerify: true
-  namespaceSelector:
-    matchNames:
-      - replace-me
+        insecureSkipVerify: false
   selector:
     matchLabels:
       app.kubernetes.io/part-of: regional-dr-trigger-operator

@@ -20,9 +20,6 @@ concurrency:
 permissions:
   contents: read
 
-env:
-  CHART_TARGET: ./chart_build
-
 jobs:
   chart:
     runs-on: ubuntu-latest
@@ -43,15 +40,10 @@ jobs:
           source: github
           yq: latest
 
-      - name: Create chart target
-        run: rm -rf ${{ env.CHART_TARGET }} && mkdir -p ${{ env.CHART_TARGET }}
-
       - name: Generate chart
-        run: make generate/chart CHART_VERSION=0.0.0 CHART_TARGET=${{ env.CHART_TARGET }}
+        run: |
+          make chart USER=ecosystem-appeng
+          git diff --exit-code
 
       - name: Lint chart
-        run: make lint/chart CHART_TARGET=${{ env.CHART_TARGET }}
-
-      - name: Delete chart
-        if: always()
-        run: rm -rf ${{ env.CHART_TARGET }}
+        run: make lint-chart

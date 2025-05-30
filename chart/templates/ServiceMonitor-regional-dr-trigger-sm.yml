@@ -1,0 +1,25 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/name: regional-dr-trigger-operator
+    app.kubernetes.io/part-of: regional-dr-trigger-operator
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+  name: regional-dr-trigger-sm
+  namespace: regional-dr-trigger
+spec:
+  endpoints:
+    - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      path: /metrics
+      port: metrics
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: false
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: regional-dr-trigger-operator

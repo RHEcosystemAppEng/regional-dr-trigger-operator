@@ -24,32 +24,17 @@ Origin (DCO). The Linux Kernel community created this document, and it is a simp
 Regenerate the RBAC manifests with the following:
 
 ```shell
-make generate/manifests
+make generate manifests
 ```
 
 ## Pre-check before submitting a PR
 
-After your PR is ready to commit, please run the following commands to check your code.
-
-Based on your patch type, lint with one/all of the following:
-
-```shell
-make lint/code
-make lint/containerFile
-make lint/ci
-```
-
-Based on your development stage, test with one/all of the following:
-
-```shell
-make test
-make test/cov
-make test/mut
-```
-
-Based on your patch type, build with one/all of the following:
+After your PR is ready to commit, please run the following commands to check your code:
 
 ```shell
 make build
-make build/image
+make test
+make lint
+make chart USER=ecosystem-appeng
+make lint-chart
 ```

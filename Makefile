@@ -1,361 +1,258 @@
-# Copyright (c) 2023 Red Hat, Inc.
+VERSION ?= $(strip $(shell cat VERSION))
+# Image URL to use all building/pushing image targets
+IMG ?= quay.io/$(USER)/regional-dr-trigger-operator:$(VERSION)
 
-##########################################
-###### Regional DR Trigger Operator ######
-##########################################
-default: help
-
-OPERATOR_TARGET_NAMESPACE ?= regional-dr-trigger##@ Set the target namespace for deploying the operator, defaults to 'regional-dr-trigger'
-
-##########################################################
-###### Create working directories (note .gitignore) ######
-##########################################################
-LOCALBIN = $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
-LOCALBUILD = $(shell pwd)/build
-$(LOCALBUILD):
-	mkdir -p $(LOCALBUILD)
-
-#####################################
-###### Image related variables ######
-#####################################
-IMAGE_REGISTRY ?= quay.io##@ Set the image registry, defaults to 'quay.io'
-IMAGE_NAMESPACE ?= ecosystem-appeng##@ Set the image namespace, defaults to 'ecosystem-appeng'
-IMAGE_NAME ?= regional-dr-trigger-operator##@ Set the operator image name, defaults to 'regional-dr-trigger-operator'
-IMAGE_TAG ?= $(strip $(shell cat VERSION))##@ Set the operator image tag, defaults to content of the VERSION file
-IMAGE_BUILDER = podman
-
-######################################
-###### Bundle related variables ######
-######################################
-BUNDLE_PACKAGE_NAME ?= $(IMAGE_NAME)##@ Set the bundle package name, defaults to IMAGE_NAME
-BUNDLE_CHANNELS ?= alpha##@ Set a comma-seperated list of channels the bundle belongs too, defaults to 'alpha'
-BUNDLE_DEFAULT_CHANNEL ?= alpha##@ Set the default channel for the bundle, defaults to 'alpha'
-BUNDLE_IMAGE_NAME ?= $(IMAGE_NAME)-bundle##@ Set the image name for the bundle, defaults to IMAGE_NAME-bundle
-BUNDLE_TARGET_NAMESPACE ?= $(OPERATOR_TARGET_NAMESPACE)##@ Set the target namespace for running the bundle, defaults to OPERATOR_TARGET_NAMESPACE
-BUNDLE_SCORECARD_NAMESPACE ?= $(IMAGE_NAME)-scorecard##@ Set the target namespace for running scorecard tests, defaults to IMAGE_NAME-scorecard
-
-####################################################
-###### Required tools customization variables ######
-####################################################
-REQ_BIN_AWK ?= awk##@ Set a custom 'awk' binary path if not in PATH
-REQ_BIN_OC ?= oc##@ Set a custom 'oc' binary path if not in PATH
-REQ_BIN_GO ?= go##@ Set a custom 'go' binary path if not in PATH (useful for multi versions environment)
-REQ_BIN_CURL ?= curl##@ Set a custom 'curl' binary path if not in PATH
-REQ_BIN_YQ ?= yq##@ Set a custom 'yq' binary path if not in PATH
-REQ_BIN_SED ?= sed##@ Set a custom 'sed' binary path if not in PATH
-
-######################################################
-###### Downloaded tools customization variables ######
-######################################################
-BIN_CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen##@ Set custom 'controller-gen', if not supplied will install in ./bin
-BIN_OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk##@ Set custom 'operator-sdk', if not supplied will install in ./bin
-BIN_KUSTOMIZE ?= $(LOCALBIN)/kustomize##@ Set custom 'kustomize', if not supplied will install in ./bin
-BIN_GO_TEST_COVERAGE ?= $(LOCALBIN)/go-test-coverage##@ Set custom 'go-test-coverage', if not supplied will install in ./bin
-BIN_ENVTEST ?= $(LOCALBIN)/setup-envtest##@ Set custom 'setup-envtest', if not supplied will install in ./bin
-BIN_GOLINTCI ?= $(LOCALBIN)/golangci-lint##@ Set custom 'golangci-lint', if not supplied will install in ./bin
-BIN_HELM ?= $(LOCALBIN)/helm##@ Set custom 'helm', if not supplied will install in ./bin
-
-################################################
-###### Downloaded tools version variables ######
-################################################
-VERSION_CONTROLLER_GEN = v0.17.3
-VERSION_OPERATOR_SDK = v1.39.2
-VERSION_KUSTOMIZE = v5.6.0
-VERSION_GO_TEST_COVERAGE = v2.12.0
-VERSION_GOLANG_CI_LINT = v2.1.6
-VERSION_HELM = v3.17.0
-VERSION_ENVTEST = release-0.20
-
-#####################################
-###### Build related variables ######
-#####################################
-OS=$(shell go env GOOS)
-ARCH=$(shell go env GOARCH)
-
-ifeq ($(OS),darwin)
-DATE_BIN = gdate
-FIND_BIN = gfind
-PASTE_BIN = gpaste
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
 else
-DATE_BIN = date
-FIND_BIN = find
-PASTE_BIN = paste
+GOBIN=$(shell go env GOBIN)
 endif
 
-BUILD_DATE = $(strip $(shell $(DATE_BIN) +%FT%T))
-BUILD_TIMESTAMP = $(strip $(shell $(DATE_BIN) -d "$(BUILD_DATE)" +%s))
-COMMIT_HASH = $(strip $(shell git rev-parse --short HEAD))
-LDFLAGS=-ldflags="\
--X 'regional-dr-trigger-operator/pkg/version.tag=${IMAGE_TAG}' \
--X 'regional-dr-trigger-operator/pkg/version.commit=${COMMIT_HASH}' \
--X 'regional-dr-trigger-operator/pkg/version.date=${BUILD_DATE}' \
-"
+# CONTAINER_TOOL defines the container tool to be used for building images.
+# Be aware that the target commands are only tested with Docker which is
+# scaffolded by default. However, you might want to replace it to use other
+# tools. (i.e. podman)
+CONTAINER_TOOL ?= podman
 
-####################################
-###### Test related variables ######
-####################################
-COVERAGE_THRESHOLD ?= 70##@ Set the unit test code coverage threshold, defaults to '58'
-ENVTEST_K8S_VERSION = 1.31.x
-OPERATOR_RUN_ARGS ?=##@ Use for setting custom run arguments for development local run
+# Setting SHELL to bash allows bash commands to be executed by recipes.
+# Options are set to exit when a recipe line exits non-zero or a piped command fails.
+SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
 
-#########################
-###### Image names ######
-#########################
-FULL_OPERATOR_IMAGE_NAME = $(strip $(IMAGE_REGISTRY)/$(IMAGE_NAMESPACE)/$(IMAGE_NAME):$(IMAGE_TAG))
-FULL_OPERATOR_IMAGE_NAME_UNIQUE = $(FULL_OPERATOR_IMAGE_NAME)_$(COMMIT_HASH)_$(BUILD_TIMESTAMP)
-FULL_BUNDLE_IMAGE_NAME = $(strip $(IMAGE_REGISTRY)/$(IMAGE_NAMESPACE)/$(BUNDLE_IMAGE_NAME):$(IMAGE_TAG))
-FULL_BUNDLE_IMAGE_NAME_UNIQUE = $(FULL_BUNDLE_IMAGE_NAME)_$(COMMIT_HASH)_$(BUILD_TIMESTAMP)
+.PHONY: all
+all: build
 
-####################################
-###### Build and push project ######
-####################################
-build/all/image: build/operator/image build/bundle/image ## Build both the operator and bundle images
+##@ General
 
-build/all/image/push: build/operator/image/push build/bundle/image/push ## Build and push both the operator and bundle images
+# The help target prints out all targets with their descriptions organized
+# beneath their categories. The categories are represented by '##@' and the
+# target descriptions by '##'. The awk command is responsible for reading the
+# entire set of makefiles included in this invocation, looking for lines of the
+# file as xyz: ## something, and then pretty-format the target and help. Then,
+# if there's a line with ##@ something, that gets pretty-printed as a category.
+# More info on the usage of ANSI control characters for terminal formatting:
+# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+# More info on the awk command:
+# http://linuxcommand.org/lc3_adv_awk.php
 
-.PHONY: build build/operator
-build build/operator: $(LOCALBUILD) ## Build the project as a binary in ./build
-	GOOS="linux" GOARCH="amd64" $(REQ_BIN_GO) build $(LDFLAGS) -o $(LOCALBUILD)/rdrtrigger ./main.go
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-.PHONY: build/operator/image
-build/operator/image: ## Build the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG
-	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_OPERATOR_IMAGE_NAME) -f ./Containerfile
+##@ Development
 
-build/operator/image/push: build/operator/image ## Build and push the operator image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, IMAGE_NAME, and IMAGE_TAG
-	$(IMAGE_BUILDER) tag $(FULL_OPERATOR_IMAGE_NAME) $(FULL_OPERATOR_IMAGE_NAME_UNIQUE)
-	$(IMAGE_BUILDER) push $(FULL_OPERATOR_IMAGE_NAME_UNIQUE)
-	$(IMAGE_BUILDER) push $(FULL_OPERATOR_IMAGE_NAME)
+.PHONY: manifests
+manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	@#$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=role paths="./internal/controller/..."
 
-.PHONY: build/bundle/image
-build/bundle/image: ## Build the bundle image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, BUNDLE_IMAGE_NAME, and IMAGE_TAG
-	$(IMAGE_BUILDER) build --ignorefile ./.gitignore --tag $(FULL_BUNDLE_IMAGE_NAME) -f ./bundle.Containerfile
+.PHONY: generate
+generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	@#$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-build/bundle/image/push: build/bundle/image ## Build and push the bundle image, customized with IMAGE_REGISTRY, IMAGE_NAMESPACE, BUNDLE_IMAGE_NAME, and IMAGE_TAG
-	$(IMAGE_BUILDER) tag $(FULL_BUNDLE_IMAGE_NAME) $(FULL_BUNDLE_IMAGE_NAME_UNIQUE)
-	$(IMAGE_BUILDER) push $(FULL_BUNDLE_IMAGE_NAME_UNIQUE)
-	$(IMAGE_BUILDER) push $(FULL_BUNDLE_IMAGE_NAME)
+.PHONY: fmt
+fmt: ## Run go fmt against code.
+	go fmt ./...
 
-###########################################
-###### Code and Manifests generation ######
-###########################################
-generate/all: generate/manifests generate/bundle ## Generate both rbac and olm bundle files
+.PHONY: vet
+vet: ## Run go vet against code.
+	go vet ./...
 
-.PHONY: generate/manifests
-generate/manifests: $(BIN_CONTROLLER_GEN) $(BIN_KUSTOMIZE) ## Generate rbac manifest files
-	$(BIN_CONTROLLER_GEN) rbac:roleName=role paths="./pkg/controller/..."
+kubeAssets = "KUBEBUILDER_ASSETS=$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)"
 
-.PHONY: generate/bundle
-generate/bundle: $(BIN_OPERATOR_SDK) $(BIN_KUSTOMIZE) ## Generate olm bundle
-	@$(call kustomize-setup)
-	$(BIN_KUSTOMIZE) build config/manifests | $(BIN_OPERATOR_SDK) generate bundle --quiet --version $(IMAGE_TAG) \
-	--package $(BUNDLE_PACKAGE_NAME) --channels $(BUNDLE_CHANNELS) --default-channel $(BUNDLE_DEFAULT_CHANNEL)
-	@mv -f ./bundle.Dockerfile ./bundle.Containerfile
-	@$(call kustomize-cleanup)
-
-.PHONY: generate/chart
-generate/chart: $(BIN_KUSTOMIZE) ## Generate a Helm Chart in a target folder. use CHART_VERSION and CHART_TARGET .
-	@$(call verify-essential-tool,$(REQ_BIN_YQ),REQ_BIN_YQ)
-	@$(call kustomize-setup)
-	./hack/generate_chart.sh --bin_yq $(REQ_BIN_YQ) --bin_kustomize $(BIN_KUSTOMIZE) --bin_sed $(REQ_BIN_SED) \
-	--bin_find $(FIND_BIN) --bin_paste $(PASTE_BIN) --chart_version $(CHART_VERSION) --target_folder $(CHART_TARGET)
-	@$(call kustomize-cleanup)
-
-################################################
-###### Install and Uninstall the operator ######
-################################################
-.PHONY: operator/run
-operator/run: ## Run the Operator in your local environment for development purposes, use OPERATOR_RUN_ARGS for run args
-	go run main.go --debug $(OPERATOR_RUN_ARGS)
-
-.PHONY: operator/deploy
-operator/deploy: $(BIN_KUSTOMIZE) ## Deploy the Regional DR Trigger Operator
-	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
-	@$(call kustomize-setup)
-	$(BIN_KUSTOMIZE) build config/default | $(REQ_BIN_OC) apply -f -
-	@$(call kustomize-cleanup)
-
-.PHONY: operator/undeploy
-operator/undeploy: $(BIN_KUSTOMIZE) ## Undeploy the Regional DR Trigger Operator
-	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
-	@$(call kustomize-setup)
-	$(BIN_KUSTOMIZE) build config/default | $(REQ_BIN_OC) delete --ignore-not-found -f -
-	@$(call kustomize-cleanup)
-
-.PHONY: bundle/run
-bundle/run: $(BIN_OPERATOR_SDK) ## Run the Regional DR Trigger Operator OLM Bundle from image
-	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
-	-$(REQ_BIN_OC) create ns $(BUNDLE_TARGET_NAMESPACE)
-	$(BIN_OPERATOR_SDK) run bundle $(FULL_BUNDLE_IMAGE_NAME) -n $(BUNDLE_TARGET_NAMESPACE)
-
-.PHONY: bundle/cleanup
-bundle/cleanup: $(BIN_OPERATOR_SDK) ## Cleanup the Regional DR Trigger Operator OLM Bundle package installed
-	$(BIN_OPERATOR_SDK) cleanup $(BUNDLE_PACKAGE_NAME) -n $(BUNDLE_TARGET_NAMESPACE)
-
-.PHONY: bundle/cleanup/namespace
-bundle/cleanup/namespace: ## DELETE the Regional DR Trigger Operator OLM Bundle namespace (BE CAREFUL)
-	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
-	$(REQ_BIN_OC) delete ns $(BUNDLE_TARGET_NAMESPACE)
-
-###########################
-###### Test codebase ######
-###########################
-kubeAssets = "KUBEBUILDER_ASSETS=$(shell $(BIN_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)"
-
-testCmd = "$(kubeAssets) $(REQ_BIN_GO) test -v ./pkg/controller/... -ginkgo.v"
+testCmd = "$(kubeAssets) go test $(shell go list ./... | grep -v /e2e) -coverprofile cover.out -ginkgo.v"
 ifdef TEST_NAME
 testCmd += " -ginkgo.focus \"$(TEST_NAME)\""
 endif
 
 .PHONY: test
-test: $(BIN_ENVTEST) ## Run all unit tests, Use TEST_NAME to run a specific test
+test: manifests generate fmt vet setup-envtest ## Run tests.
+	@echo "Running tests..."
 	@eval $(testCmd)
 
-covTestCmd = "$(kubeAssets) $(REQ_BIN_GO) test -failfast -coverprofile=cov.out -v ./pkg/controller/... -ginkgo.v"
-
-.PHONY: test/cov
-test/cov: $(BIN_GO_TEST_COVERAGE) $(BIN_ENVTEST) ## Run all unit tests and print coverage report, use the COVERAGE_THRESHOLD var for setting threshold
-	@eval $(covTestCmd)
-	$(REQ_BIN_GO) tool cover -func=cov.out
-	$(REQ_BIN_GO) tool cover -html=cov.out -o cov.html
-	$(BIN_GO_TEST_COVERAGE) -p cov.out -k 0 -t $(COVERAGE_THRESHOLD)
-
-.PHONY: test/bundle
-test/bundle: $(BIN_OPERATOR_SDK) ## Run Scorecard Bundle Tests (requires connected cluster)
-	$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
-	@ { \
-	if $(REQ_BIN_OC) create ns $(BUNDLE_SCORECARD_NAMESPACE); then \
-		$(BIN_OPERATOR_SDK) scorecard ./bundle -n $(BUNDLE_SCORECARD_NAMESPACE) --pod-security=restricted; \
-		$(REQ_BIN_OC) delete ns $(BUNDLE_SCORECARD_NAMESPACE); \
-	else \
-		$(BIN_OPERATOR_SDK) scorecard ./bundle -n $(BUNDLE_SCORECARD_NAMESPACE) --pod-security=restricted; \
-	fi \
+.PHONY: setup-test-e2e
+setup-test-e2e: manifests generate fmt vet ## Gather required manifests for Kuttl.
+	@command -v kind >/dev/null 2>&1 || { \
+		echo "Kind is not installed. Please install Kind manually."; \
+		exit 1; \
 	}
+	# TODO generate controller manifests for kuttl deployment
 
-.PHONY: test/bundle/delete/ns
-test/bundle/delete/ns: ## DELETE the Scorecard namespace (BE CAREFUL)
-	@$(call verify-essential-tool,$(REQ_BIN_OC),REQ_BIN_OC)
-	-$(REQ_BIN_OC) delete ns $(BUNDLE_SCORECARD_NAMESPACE)
+.PHONY: test-e2e
+test-e2e: setup-test-e2e ## Run the e2e tests with Kuttl.
+	# TODO run kuttl
 
-###########################
-###### Lint codebase ######
-###########################
-lint/all: lint/code lint/containerfile lint/bundle ## Lint the entire project (code, containerfile, bundle)
+.PHONY: lint
+lint: golangci-lint ## Run golangci-lint linter
+	$(GOLANGCI_LINT) run
 
-.PHONY: lint lint/code
-lint lint/code: $(BIN_GOLINTCI) ## Lint the code
-	$(REQ_BIN_GO) fmt ./...
-	$(BIN_GOLINTCI) run --timeout 5m
+.PHONY: lint-fix
+lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
+	$(GOLANGCI_LINT) run --fix
 
-.PHONY: lint/containerfile
-lint/containerfile: ## Lint the Containerfile (using Hadolint image, do not use inside a container)
-	$(IMAGE_BUILDER) run --rm -i docker.io/hadolint/hadolint:latest < ./Containerfile
+.PHONY: lint-config
+lint-config: golangci-lint ## Verify golangci-lint linter configuration
+	$(GOLANGCI_LINT) config verify
 
-.PHONY: lint/bundle
-lint/bundle: $(BIN_OPERATOR_SDK) ## Validate OLM bundle
-	$(BIN_OPERATOR_SDK) bundle validate ./bundle --select-optional suite=operatorframework
+CHART_VERSION ?= 1.0.0
+.PHONY: chart
+chart:  manifests kustomize ## Generate the Helm Chart, overwrites existing.
+	@command -v yq >/dev/null 2>&1 || { \
+		echo "yq is not installed. Please install yq manually."; \
+		exit 1; \
+	}
+	@echo "Generating chart"
+	@cd config/default && $(KUSTOMIZE) edit set image controller=$(IMG)
+	@./hack/generate_chart.sh --bin_kustomize $(KUSTOMIZE) --app_version $(VERSION) --chart_version $(CHART_VERSION)
 
-.PHONY: lint/chart
-lint/chart: $(BIN_HELM) ## Lint the Helm chart. Use CHART_TARGET.
-	$(BIN_HELM) lint $(CHART_TARGET) --strict
+.PHONY: lint-chart
+lint-chart: ## Use Helm to lint the generated chart.
+	@command -v helm >/dev/null 2>&1 || { \
+		echo "helm is not installed. Please install helm manually."; \
+		exit 1; \
+	}
+	@helm lint chart --strict
 
-####################################
-###### Install required tools ######
-####################################
-$(BIN_KUSTOMIZE): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/kustomize/kustomize/v5@$(VERSION_KUSTOMIZE)
+##@ Build
 
-$(BIN_CONTROLLER_GEN): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@$(VERSION_CONTROLLER_GEN)
+.PHONY: build
+build: manifests generate fmt vet ## Build manager binary.
+	@#go build -o bin/manager cmd/main.go
+	GOOS="linux" GOARCH="amd64" go build -o $(LOCALBIN)/manager ./cmd/main.go
 
-$(BIN_GO_TEST_COVERAGE): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/vladopajic/go-test-coverage/v2@$(VERSION_GO_TEST_COVERAGE)
+.PHONY: run
+run: manifests generate fmt vet ## Run a controller from your host.
+	@#go run ./cmd/main.go
+	go run cmd/main.go --debug
 
-$(BIN_ENVTEST): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install sigs.k8s.io/controller-runtime/tools/setup-envtest@$(VERSION_ENVTEST)
+# If you wish to build the manager image targeting other platforms you can use the --platform flag.
+# (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
+# More info: https://docs.docker.com/develop/develop-images/build_enhancements/
+.PHONY: container-build
+container-build: ## Build docker image with the manager.
+	@#$(CONTAINER_TOOL) build -t ${IMG} .
+	$(CONTAINER_TOOL) build --ignorefile ./.gitignore --tag $(IMG) -f ./Containerfile
 
-$(BIN_GOLINTCI): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(REQ_BIN_GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(VERSION_GOLANG_CI_LINT)
+.PHONY: container-push
+container-push: ## Push docker image with the manager.
+	$(CONTAINER_TOOL) push ${IMG}
 
-$(BIN_OPERATOR_SDK): $(LOCALBIN)
-	@$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
-	$(REQ_BIN_CURL) -sSLo $(BIN_OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(VERSION_OPERATOR_SDK)/operator-sdk_$(OS)_$(ARCH)
-	chmod +x $(BIN_OPERATOR_SDK)
+# PLATFORMS defines the target platforms for the manager image be built to provide support to multiple
+# architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
+# - be able to use docker buildx. More info: https://docs.docker.com/build/buildx/
+# - have enabled BuildKit. More info: https://docs.docker.com/develop/develop-images/build_enhancements/
+# - be able to push the image to your registry (i.e. if you do not set a valid value via IMG=<myregistry/image:<tag>> then the export will fail)
+# To adequately provide solutions that are compatible with multiple platforms, you should consider using this option.
+#PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
+#.PHONY: docker-buildx
+#docker-buildx: ## Build and push docker image for the manager for cross-platform support
+#	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
+#	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
+#	- $(CONTAINER_TOOL) buildx create --name project-v4-builder
+#	$(CONTAINER_TOOL) buildx use project-v4-builder
+#	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
+#	- $(CONTAINER_TOOL) buildx rm project-v4-builder
+#	rm Dockerfile.cross
 
-ifeq ($(OS),darwin)
-WILDCARD = '*/helm'
-else
-WILDCARD = --wildcards '*/helm'
+#.PHONY: build-installer
+#build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
+#	#mkdir -p dist
+#	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+#	$(KUSTOMIZE) build config/default > dist/install.yaml
+
+##@ Deployment
+
+ifndef ignore-not-found
+  ignore-not-found = false
 endif
 
-$(BIN_HELM): $(LOCALBIN)
-	@$(call verify-essential-tool,$(REQ_BIN_CURL),REQ_BIN_CURL)
-	$(REQ_BIN_CURL) -sSL https://get.helm.sh/helm-$(VERSION_HELM)-$(OS)-$(ARCH).tar.gz | tar xzf - -C $(LOCALBIN) --strip-components=1 $(WILDCARD)
+.PHONY: install
+install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+	@#$(KUSTOMIZE) build config/crd | $(KUBECTL) apply -f -
 
-###############################
-###### Utility functions ######
-###############################
-define kustomize-setup
-$(call verify-essential-tool,$(REQ_BIN_YQ),REQ_BIN_YQ)
-cp config/default/kustomization.yaml config/default/kustomization.yaml.tmp
-cd config/default && \
-$(BIN_KUSTOMIZE) edit set image rdrtrigger-image=$(FULL_OPERATOR_IMAGE_NAME) && \
-$(BIN_KUSTOMIZE) edit set namespace $(OPERATOR_TARGET_NAMESPACE)
-$(REQ_BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/instance" = "rdrtrigger-$(IMAGE_TAG)"' config/default/kustomization.yaml
-$(REQ_BIN_YQ) -i '.labels[1].pairs."app.kubernetes.io/version" = "$(IMAGE_TAG)"' config/default/kustomization.yaml
-cp config/manager/namespace.yaml config/manager/namespace.yaml.tmp
-$(REQ_BIN_YQ) -i '.metadata.name = "$(OPERATOR_TARGET_NAMESPACE)"' config/manager/namespace.yaml
+.PHONY: uninstall
+uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	@#$(KUSTOMIZE) build config/crd | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
+
+.PHONY: deploy
+deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	@#cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/default && $(KUSTOMIZE) edit set image controller=$(IMG)
+	$(KUSTOMIZE) build config/default | $(KUBECTL) apply -f -
+
+.PHONY: undeploy
+undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
+
+##@ Dependencies
+
+## Location to install dependencies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+## Tool Binaries
+KUBECTL ?= kubectl
+KUSTOMIZE ?= $(LOCALBIN)/kustomize
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+ENVTEST ?= $(LOCALBIN)/setup-envtest
+GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
+
+## Tool Versions
+KUSTOMIZE_VERSION ?= v5.6.0
+CONTROLLER_TOOLS_VERSION ?= v0.17.3
+#ENVTEST_VERSION is the version of controller-runtime release branch to fetch the envtest setup script (i.e. release-0.20)
+#ENVTEST_VERSION ?= $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller-runtime | awk -F'[v.]' '{printf "release-%d.%d", $$2, $$3}')
+ENVTEST_VERSION ?= release-0.20
+#ENVTEST_K8S_VERSION is the version of Kubernetes to use for setting up ENVTEST binaries (i.e. 1.31)
+#ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
+ENVTEST_K8S_VERSION ?= 1.31.x
+GOLANGCI_LINT_VERSION ?= v2.1.6
+HELM_VERSION ?= v3.17.0
+
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
+
+.PHONY: controller-gen
+controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN): $(LOCALBIN)
+	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_TOOLS_VERSION))
+
+.PHONY: setup-envtest
+setup-envtest: envtest ## Download the binaries required for ENVTEST in the local bin directory.
+	@echo "Setting up envtest binaries for Kubernetes version $(ENVTEST_K8S_VERSION)..."
+	@$(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path || { \
+		echo "Error: Failed to set up envtest binaries for version $(ENVTEST_K8S_VERSION)."; \
+		exit 1; \
+	}
+	@echo " \
+"
+
+.PHONY: envtest
+envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
+
+.PHONY: golangci-lint
+golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
+$(GOLANGCI_LINT): $(LOCALBIN)
+	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+# go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
+# $1 - target path with name of binary
+# $2 - package url which can be installed
+# $3 - specific version of package
+define go-install-tool
+@[ -f "$(1)-$(3)" ] || { \
+set -e; \
+package=$(2)@$(3) ;\
+echo "Downloading $${package}" ;\
+rm -f $(1) || true ;\
+GOBIN=$(LOCALBIN) go install $${package} ;\
+mv $(1) $(1)-$(3) ;\
+} ;\
+ln -sf $(1)-$(3) $(1)
 endef
-
-define kustomize-cleanup
--mv config/default/kustomization.yaml.tmp config/default/kustomization.yaml
--mv config/manager/namespace.yaml.tmp config/manager/namespace.yaml
-endef
-
-# arg1 = name of the tool to look for | arg2 = name of the variable for a custom replacement
-TOOL_MISSING_ERR_MSG = Please install '$(1)' or specify a custom path using the '$(2)' variable
-define verify-essential-tool
-@if !(which $(1) &> /dev/null); then \
-	echo $(call TOOL_MISSING_ERR_MSG,$(1),$(2)); \
-	exit 1; \
-fi
-endef
-
-################################
-###### Display build help ######
-################################
-help: ## Show this help message
-	$(call verify-essential-tool,$(REQ_BIN_AWK),REQ_BIN_AWK)
-	@$(REQ_BIN_AWK) 'BEGIN {\
-			FS = ".*##@";\
-			print "\033[1;31mRegional DR Trigger Operator\033[0m";\
-			print "\033[1;32mUsage\033[0m";\
-			printf "\t\033[1;37mmake <target> |";\
-			printf "\tmake <target> [Variables Set] |";\
-            printf "\tmake [Variables Set] <target> |";\
-            print "\t[Variables Set] make <target>\033[0m";\
-			print "\033[1;32mAvailable Variables\033[0m" }\
-		/^(\s|[a-zA-Z_0-9-]|\/)+ \?=.*?##@/ {\
-			split($$0,t,"?=");\
-			printf "\t\033[1;36m%-35s \033[0;37m%s\033[0m\n",t[1], $$2 | "sort" }'\
-		$(MAKEFILE_LIST)
-	@$(REQ_BIN_AWK) 'BEGIN {\
-			FS = ":.*##";\
-			SORTED = "sort";\
-            print "\033[1;32mAvailable Targets\033[0m"}\
-		/^(\s|[a-zA-Z_0-9-]|\/)+:.*?##/ {\
-			if($$0 ~ /deploy/)\
-				printf "\t\033[1;36m%-35s \033[0;33m%s\033[0m\n", $$1, $$2 | SORTED;\
-			else if($$0 ~ /push/)\
-				printf "\t\033[1;36m%-35s \033[0;35m%s\033[0m\n", $$1, $$2 | SORTED;\
-			else if($$0 ~ /DELETE/)\
-				printf "\t\033[1;36m%-35s \033[0;31m%s\033[0m\n", $$1, $$2 | SORTED;\
-			else\
-				printf "\t\033[1;36m%-35s \033[0;37m%s\033[0m\n", $$1, $$2 | SORTED; }\
-		END { \
-			close(SORTED);\
-			print "\033[1;32mFurther Information\033[0m";\
-			print "\t\033[0;37m* Source code: \033[38;5;26mhttps://github.com/RHEcosystemAppEng/regional-dr-trigger-operator\33[0m"}'\
-		$(MAKEFILE_LIST)

@@ -5,8 +5,8 @@ package operator
 import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
-	"regional-dr-trigger-operator/pkg/controller"
-	"regional-dr-trigger-operator/pkg/utils"
+	"regional-dr-trigger-operator/internal/controller"
+	"regional-dr-trigger-operator/internal/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
