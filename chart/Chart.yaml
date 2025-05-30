@@ -4,7 +4,7 @@ apiVersion: v2
 name: regional-dr-trigger-operator
 description: This Operator will use ODF's Regional DR API for triggering a Failover process for all Applications affiliated with a cluster which is reported as not available by ACM's Managed Cluster API.
 version: 1.0.0
-appVersion: "0.2.0"
+appVersion: "0.3.0"
 home: https://github.com/RHEcosystemAppEng/regional-dr-trigger-operator
 keywords:
   - acm
