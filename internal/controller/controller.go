@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	"regional-dr-trigger-operator/internal/metrics"
+	"regional-dr-trigger-operator/internal/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -79,7 +79,7 @@ func (r *DRTriggerController) Reconcile(ctx context.Context, req ctrl.Request) (
 						failuresFound = true
 					} else {
 						logger.Info(fmt.Sprintf("succesfully patched DRPlacementControl %s in %s for a failover", drControl.Name, drControl.Namespace))
-						metrics.DRApplicationFailover.WithLabelValues(mcName, drControl.Name, drControl.Namespace).Inc()
+						utils.DRApplicationFailoverMetric.WithLabelValues(mcName, drControl.Name, drControl.Namespace).Inc()
 					}
 				} else {
 					logger.V(1).Info(fmt.Sprintf("dr control %s phase %s not suitable for failing over", drControl.Name, drControl.Status.Phase))

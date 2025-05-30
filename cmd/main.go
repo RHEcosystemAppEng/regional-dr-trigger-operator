@@ -6,12 +6,11 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/component-base/cli"
 	"regional-dr-trigger-operator/internal/operator"
-	"regional-dr-trigger-operator/internal/version"
 )
 
 // command used for running the operator
 var cmd = &cobra.Command{
-	Use:   "rdrtrigger",
+	Use:   "manager",
 	Short: "Regional DR Trigger Operator, ACM-based triggering",
 }
 
@@ -44,9 +43,14 @@ func init() {
 		"metrics-secure",
 		true,
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
+	cmd.Flags().BoolVar(
+		&oper.Options.EnableHttp2,
+		"enable-http2",
+		false,
+		"If set, HTTP/2 will be enabled for the metrics and webhook servers",
+	)
 
 	cmd.RunE = oper.Run
-	cmd.Version = version.Get().String()
 }
 
 // main is used for running the regional dr trigger operator command
