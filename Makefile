@@ -103,8 +103,7 @@ chart:  manifests kustomize ## Generate the Helm Chart, overwrites existing.
 		exit 1; \
 	}
 	@echo "Generating chart"
-	@cd config/default && $(KUSTOMIZE) edit set image controller=$(IMG)
-	@./hack/generate_chart.sh --bin_kustomize $(KUSTOMIZE) --app_version $(VERSION) --chart_version $(CHART_VERSION)
+	@./hack/generate_chart.sh --bin_kustomize $(KUSTOMIZE) --app_version $(VERSION) --chart_version $(CHART_VERSION) --image $(IMG)
 
 .PHONY: lint-chart
 lint-chart: ## Use Helm to lint the generated chart.

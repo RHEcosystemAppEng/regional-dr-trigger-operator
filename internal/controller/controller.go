@@ -5,20 +5,30 @@ package controller
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
+
+	"github.com/hashicorp/go-multierror"
 	ramenv1alpha1 "github.com/ramendr/ramen/api/v1alpha1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	"regional-dr-trigger-operator/internal/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // okToFailoverStates is a fixed array listing the state a DRPlacementControl needs to be in for us to initiate a failover.
 var okToFailoverStates = [...]ramenv1alpha1.DRState{ramenv1alpha1.Deploying, ramenv1alpha1.Deployed, ramenv1alpha1.Relocated}
+
+var drApplicationFailoverMetric = *prometheus.NewCounterVec(prometheus.CounterOpts{
+	Name: "dr_application_failover_count",
+	Help: "Counter for DR Applications failover initiated by the Regional DR Trigger Operator",
+}, []string{"dr_cluster_name", "dr_control_name", "dr_application_name"})
 
 // DRTriggerController is a receiver representing the DRTriggerOperator controller for ManagedCluster CRs
 type DRTriggerController struct {
@@ -28,13 +38,15 @@ type DRTriggerController struct {
 
 // SetupWithManager is used for setting up the controller. Using Predicates for filtering, only accepting
 // ManagedCluster eligible for failing over
-func (r *DRTriggerController) SetupWithManager(mgr ctrl.Manager) error {
+func (r *DRTriggerController) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("regional-dr-trigger-controller").
 		For(&clusterv1.ManagedCluster{}).
-		WithEventFilter(verifyManagedCluster(acceptedByHub())).
-		WithEventFilter(verifyManagedCluster(joinedHub())).
-		WithEventFilter(verifyManagedCluster(notAvailable())).
+		WithEventFilter(predicate.Funcs{
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				return false
+			},
+		}).
 		Complete(r)
 }
 
@@ -52,80 +64,93 @@ func (r *DRTriggerController) Reconcile(ctx context.Context, req ctrl.Request) (
 	logger := log.FromContext(ctx).WithName("mc-controller")
 	ctx = log.IntoContext(ctx, logger)
 
-	// the name in the request is the managed cluster name and cluster-namespace name.
-	mcName := req.Name
-	logger.V(1).Info(fmt.Sprintf("got request for ManagedCluster %s", mcName))
+	mc := &clusterv1.ManagedCluster{}
+	if err := r.Client.Get(ctx, req.NamespacedName, mc); err != nil {
+		if k8serrors.IsNotFound(err) {
+			logger.Info("managed cluster deleted")
+		}
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	logger.Info("got request for managed cluster")
 
-	// fetch all DRPlacementControl in the Hub Cluster
+	if !meta.IsStatusConditionTrue(mc.Status.Conditions, clusterv1.ManagedClusterConditionJoined) {
+		logger.Info("managed cluster not joined")
+		return ctrl.Result{}, nil
+	}
+
+	if !mc.Spec.HubAcceptsClient {
+		logger.Info("managed cluster not accepted by hub")
+		return ctrl.Result{}, nil
+	}
+
+	if !meta.IsStatusConditionTrue(mc.Status.Conditions, clusterv1.ManagedClusterConditionAvailable) {
+		logger.Info("managed cluster is not available")
+		return ctrl.Result{}, nil
+	}
+
 	drControls := &ramenv1alpha1.DRPlacementControlList{}
 	if err := r.Client.List(ctx, drControls); err != nil {
-		logger.Error(err, "failed to fetch DRPlacementControlsList")
 		return ctrl.Result{}, err
 	}
 
-	failuresFound := false
-	// iterate over DRPlacementControls and cherry-pick ones that belongs to the current Managed Cluster
+	var errs *multierror.Error
 	for _, drControl := range drControls.Items {
-		// check if the current DRPlacementControl runs for the triggering ManagedCluster
-		if drControl.Status.PreferredDecision.ClusterName == mcName {
-			logger.V(1).Info(fmt.Sprintf("found dr control %s for managed cluster %s", drControl.Name, mcName))
-			// check if a failover instruction was already recorded
+
+		// dr controls using current managed cluster
+		if drControl.Status.PreferredDecision.ClusterName == mc.Name {
+			logger.Info("found dr control for managed cluster",
+				"drpc_name", drControl.Name, "drpc_ns", drControl.Namespace)
+			// dr controls not already failed-over
 			if drControl.Spec.Action != ramenv1alpha1.ActionFailover {
-				// check if the DRPlacementControl is in a phase suitable for a failover, i.e. Deployed (yes) | Initiating (no)
+				// dr control in phase suitable for a failover
 				if isPhaseOkForFailover(drControl) {
-					// patch DRPlacementControl and initiate a failover process
-					if err := r.patchDRPlacementControl(ctx, drControl, ramenv1alpha1.ActionFailover); err != nil {
-						logger.Error(err, fmt.Sprintf("failed to patch failover DRPlacementControl %s in %s", drControl.Name, drControl.Namespace))
-						failuresFound = true
+					// dr control peer is ready
+					if meta.IsStatusConditionTrue(drControl.Status.Conditions, ramenv1alpha1.ConditionPeerReady) {
+						// patch do control and initiate a failover process
+						if err := r.patchDRPlacementControl(ctx, drControl, ramenv1alpha1.ActionFailover); err != nil {
+							errs = multierror.Append(err, errs)
+						} else {
+							logger.Info("successfully patched dr control for a failover",
+								"drpc_name", drControl.Name, "drpc_ns", drControl.Namespace)
+							drApplicationFailoverMetric.WithLabelValues(mc.Name, drControl.Name, drControl.Namespace).Inc()
+						}
 					} else {
-						logger.Info(fmt.Sprintf("succesfully patched DRPlacementControl %s in %s for a failover", drControl.Name, drControl.Namespace))
-						utils.DRApplicationFailoverMetric.WithLabelValues(mcName, drControl.Name, drControl.Namespace).Inc()
+						logger.Info("dr control peer not available for a failover",
+							"drpc_name", drControl.Name, "drpc_ns", drControl.Namespace)
 					}
 				} else {
-					logger.V(1).Info(fmt.Sprintf("dr control %s phase %s not suitable for failing over", drControl.Name, drControl.Status.Phase))
+					logger.Info("dr control not in suitable phase for a failover", "drpc_name",
+						drControl.Name, "drpc_ns", drControl.Namespace, "dr_phase", drControl.Status.Phase)
 				}
 			} else {
-				logger.V(1).Info(fmt.Sprintf("dr control %s failover already intiaited", drControl.Name))
+				logger.Info("dr control failover already initiated", "drpc_name",
+					drControl.Name, "drpc_ns", drControl.Namespace)
 			}
 		}
 	}
 
-	if failuresFound {
-		return ctrl.Result{}, fmt.Errorf("failed to failover one or more DR placement controls")
-	}
-
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, errs.ErrorOrNil()
 }
 
 // patchDRPlacementControl is used to patch a DRPlacementControl for triggering a failover process
 func (r *DRTriggerController) patchDRPlacementControl(ctx context.Context, control ramenv1alpha1.DRPlacementControl, action ramenv1alpha1.DRAction) error {
-	drControlSubject := types.NamespacedName{Namespace: control.Namespace, Name: control.Name}
-
-	// check if the peer is ready
-	if !meta.IsStatusConditionTrue(control.Status.Conditions, ramenv1alpha1.ConditionPeerReady) {
-		return fmt.Errorf("attempting to failover %s, peer not ready", drControlSubject.String())
-	}
-
-	// fetch the DRPlacementControl
 	drControlObj := &ramenv1alpha1.DRPlacementControl{}
+	drControlSubject := types.NamespacedName{Namespace: control.Namespace, Name: control.Name}
 	if err := r.Client.Get(ctx, drControlSubject, drControlObj); err != nil {
 		return err
 	}
 
-	// create the failover action patch
 	failoverPatch := &ramenv1alpha1.DRPlacementControl{
 		Spec: ramenv1alpha1.DRPlacementControlSpec{
 			Action: action,
 		},
 	}
 
-	// serialize the patch
 	rawPatch, err := json.Marshal(failoverPatch)
 	if err != nil {
 		return err
 	}
 
-	// patch the DRPlacementControl for with the failover patch
 	if err = r.Client.Patch(ctx, drControlObj, client.RawPatch(types.MergePatchType, rawPatch)); err != nil {
 		return err
 	}
@@ -142,4 +167,8 @@ func isPhaseOkForFailover(control ramenv1alpha1.DRPlacementControl) bool {
 		}
 	}
 	return false
+}
+
+func init() {
+	metrics.Registry.MustRegister(drApplicationFailoverMetric)
 }

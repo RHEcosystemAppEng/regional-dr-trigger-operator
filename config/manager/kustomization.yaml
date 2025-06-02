@@ -4,7 +4,3 @@ resources:
 - namespace.yaml
 - deployment.yaml
 - metrics-service.yaml
-images:
-- name: controller
-  newName: quay.io/tfigenbl/regional-dr-trigger-operator
-  newTag: 0.2.0
