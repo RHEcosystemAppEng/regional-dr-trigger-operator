@@ -4,12 +4,13 @@ package operator
 
 import (
 	"crypto/tls"
+	"fmt"
 	ramenv1alpha1 "github.com/ramendr/ramen/api/v1alpha1"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	"regional-dr-trigger-operator/internal/controller"
-	"regional-dr-trigger-operator/internal/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,7 +50,7 @@ func (c *DRTriggerOperator) Run(cmd *cobra.Command, args []string) error {
 
 	// create the scheme and install the required types
 	scheme := runtime.NewScheme()
-	if err := utils.InstallTypes(scheme); err != nil {
+	if err := installTypes(scheme); err != nil {
 		logger.Error(err, "failed installing scheme")
 		return err
 	}
@@ -96,8 +97,8 @@ func (c *DRTriggerOperator) Run(cmd *cobra.Command, args []string) error {
 	}
 
 	// set up the controller
-	controller := &controller.DRTriggerController{Client: mgr.GetClient(), Scheme: mgr.GetScheme()}
-	if err = controller.SetupWithManager(mgr); err != nil {
+	controller := &controller.DRTriggerController{Client: mgr.GetClient(), Scheme: scheme}
+	if err = controller.SetupWithManager(ctx, mgr); err != nil {
 		logger.Error(err, "failed setting up the controller")
 		return err
 	}
@@ -114,4 +115,17 @@ func (c *DRTriggerOperator) Run(cmd *cobra.Command, args []string) error {
 
 	logger.Info("stating manager")
 	return mgr.Start(ctx)
+}
+
+// installTypes is used for installing all the required types with a scheme.
+func installTypes(scheme *runtime.Scheme) error {
+	// required for ManagedCluster
+	if err := clusterv1.Install(scheme); err != nil {
+		return fmt.Errorf("failed installing ocm's types into the scheme, %v", err)
+	}
+	// required for DRPlacementControl
+	if err := ramenv1alpha1.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("failed installing ramen's types into the scheme, %v", err)
+	}
+	return nil
 }

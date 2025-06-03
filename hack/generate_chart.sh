@@ -19,6 +19,9 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
+# mandatory named parameters
+[[ -z $image ]] && echo "missing mandatory image" && exit 1
+
 # optional named parameters default values
 bin_kustomize=${bin_kustomize:-kustomize}
 app_version=${app_version:-$(<VERSION)}
@@ -52,6 +55,7 @@ yq -i ".version = \"$chart_version\"" "$temp_folder"/Chart.yaml
 yq -i ".appVersion = \"$app_version\"" "$temp_folder"/Chart.yaml
 
 # create the base templates from kustomization manifests
+(cd config/default && $bin_kustomize edit set image controller="$image")
 $bin_kustomize build config/default > "$temp_folder"/templates/kustomized_templates.yaml
 (cd "$temp_folder"/templates && yq -s '.kind + "-" + .metadata.name' kustomized_templates.yaml)
 rm -f "$temp_folder"/templates/kustomized_templates.yaml

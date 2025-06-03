@@ -3,154 +3,474 @@
 package controller
 
 import (
-	"encoding/json"
+	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	ramenv1alpha1 "github.com/ramendr/ramen/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Context("Testing reconciliation", func() {
-	// Testing Plan:
-	// - Two testing Namespaces. Each will have one DRPlacementControl declared with the Relocate.
-	// - Two Spoke clusters. One of them will be used as a "failed" cluster.
-	//
-	// Note: events for unavailable clusters are cherry-picked using Predicates,
-	// this means that every reconciliation loop invocation assumes unavailability, no patching required.
-	//
-	// Note: the events source is a ManagedCluster, but we only need its name, the spoke name, which we get from the
-	// request. No patching of the ManagedCluster required.
-	//
-	// An eligible for failover DR application, is a DRPlacementControl matching the following conditions:
-	// - The PreferredCluster is the event cluster
-	// - The Phase in one of Deploying, Deployed, or Relocated
-	// - Has Condition PeerAvailable set to True
-	//
-	// The test scenarios in this file, will run various cases of eligible and not eligible clusters.
-	//
-	// See reconciler_suite_test for testing data, utilities, and environment setup and teardown.
+var _ = Context("DR Trigger Controller", func() {
+	It("should not reconcile if the managed cluster have not joined the hub", func(ctx SpecContext) {
+		testName := "mc-not-joined"
 
-	targetSpoke1 := "spoke1"
-	targetSpoke2 := "spoke2"
+		By("Create a ManagedCluster")
+		mc := &clusterv1.ManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: testName}}
+		Expect(testClient.Create(ctx, mc)).To(Succeed())
 
-	drControlNs1BP := ramenv1alpha1.DRPlacementControl{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ns1-test-control",
-			Namespace: testNamespace1.Name,
-		},
-		Spec: ramenv1alpha1.DRPlacementControlSpec{
-			Action: ramenv1alpha1.ActionRelocate,
-		},
-	}
-	var drControlNs1 *ramenv1alpha1.DRPlacementControl
+		By("Reconcile for the MC")
+		res, err := drtController.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(mc)})
+		Expect(res.Requeue).To(BeFalse())
+		Expect(err).NotTo(HaveOccurred())
 
-	drControlNs2BP := &ramenv1alpha1.DRPlacementControl{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "n2-test-control",
-			Namespace: testNamespace2.Name,
-		},
-		Spec: ramenv1alpha1.DRPlacementControlSpec{
-			Action: ramenv1alpha1.ActionRelocate,
-		},
-	}
-	var drControlNs2 *ramenv1alpha1.DRPlacementControl
-
-	BeforeEach(func(ctx SpecContext) {
-		// create testing objects before each test
-		drControlNs1 = drControlNs1BP.DeepCopy()
-		drControlNs2 = drControlNs2BP.DeepCopy()
-
-		Expect(testClient.Create(ctx, drControlNs1)).To(Succeed())
-		Expect(testClient.Create(ctx, drControlNs2)).To(Succeed())
+		By("Cleanups")
+		Expect(testClient.Delete(ctx, mc)).To(Succeed())
 	})
 
-	AfterEach(func(ctx SpecContext) {
-		// delete testing objects after each test
-		Expect(testClient.Delete(ctx, drControlNs1)).To(Succeed())
-		Expect(testClient.Delete(ctx, drControlNs2)).To(Succeed())
+	It("should not reconcile if the managed cluster is not accepted by the hub", func(ctx SpecContext) {
+		testName := "mc-not-accepted"
+
+		By("Create a ManagedCluster")
+		mc := &clusterv1.ManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: testName}}
+		Expect(testClient.Create(ctx, mc)).To(Succeed())
+
+		By("Update the MC status")
+		mc.Status = clusterv1.ManagedClusterStatus{Conditions: []metav1.Condition{{
+			Type:               clusterv1.ManagedClusterConditionJoined,
+			Status:             metav1.ConditionTrue,
+			Reason:             "MC_Joined",
+			LastTransitionTime: metav1.Now(),
+		}}}
+		Expect(testClient.Status().Update(ctx, mc)).To(Succeed())
+
+		By("Reconcile for the MC")
+		res, err := drtController.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(mc)})
+		Expect(res.Requeue).To(BeFalse())
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Cleanups")
+		Expect(testClient.Delete(ctx, mc)).To(Succeed())
 	})
 
-	Specify("Only patch applications preferring the cluster triggering the event", func(ctx SpecContext) {
-		// patch application on the first namespace to be READY for failover and prefer SPOKE1
-		drControlNs1Patch, err := json.Marshal(statusForPatching(targetSpoke1, ramenv1alpha1.Deployed, metav1.ConditionTrue))
+	It("should not reconcile if the managed cluster is not available", func(ctx SpecContext) {
+		testName := "mc-not-available"
+
+		By("Create a ManagedCluster")
+		mc := &clusterv1.ManagedCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: testName},
+			Spec:       clusterv1.ManagedClusterSpec{HubAcceptsClient: true},
+		}
+		Expect(testClient.Create(ctx, mc)).To(Succeed())
+
+		By("Update the MC status")
+		mc.Status = clusterv1.ManagedClusterStatus{Conditions: []metav1.Condition{{
+			Type:               clusterv1.ManagedClusterConditionJoined,
+			Status:             metav1.ConditionTrue,
+			Reason:             "MC_Joined",
+			LastTransitionTime: metav1.Now(),
+		}}}
+		Expect(testClient.Status().Update(ctx, mc)).To(Succeed())
+
+		By("Reconcile for the MC")
+		res, err := drtController.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(mc)})
+		Expect(res.Requeue).To(BeFalse())
 		Expect(err).NotTo(HaveOccurred())
-		Expect(testClient.Status().Patch(ctx, drControlNs1, client.RawPatch(types.MergePatchType, drControlNs1Patch))).To(Succeed())
 
-		// patch application on the second namespace to be READY for failover and prefer SPOKE2
-		drControlNs2Patch, err := json.Marshal(statusForPatching(targetSpoke2, ramenv1alpha1.Deployed, metav1.ConditionTrue))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(testClient.Status().Patch(ctx, drControlNs2, client.RawPatch(types.MergePatchType, drControlNs2Patch))).To(Succeed())
-
-		// reconcile event for SPOKE1 and expect success
-		result, err := sut.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: targetSpoke1}})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).NotTo(BeNil())
-
-		// verify the application from the first namespace is now set to fail-over
-		drControlNs1Sut := &ramenv1alpha1.DRPlacementControl{}
-		Expect(testClient.Get(ctx, types.NamespacedName{Name: drControlNs1.Name, Namespace: drControlNs1.Namespace}, drControlNs1Sut)).To(Succeed())
-		Expect(drControlNs1Sut.Spec.Action).To(Equal(ramenv1alpha1.ActionFailover))
-
-		// verify the application from the second namespace is still relocated
-		drControlNs2Sut := &ramenv1alpha1.DRPlacementControl{}
-		Expect(testClient.Get(ctx, types.NamespacedName{Name: drControlNs2.Name, Namespace: drControlNs2.Namespace}, drControlNs2Sut)).To(Succeed())
-		Expect(drControlNs2Sut.Spec.Action).To(Equal(ramenv1alpha1.ActionRelocate))
+		By("Cleanups")
+		Expect(testClient.Delete(ctx, mc)).To(Succeed())
 	})
 
-	Specify("Only patch applications in suitable phase", func(ctx SpecContext) {
-		// patch application on the first namespace to be READY for failover
-		drControlNs1Patch, err := json.Marshal(statusForPatching(targetSpoke2, ramenv1alpha1.Deploying, metav1.ConditionTrue))
+	It("should only failover dr controls preferring the current cluster", func(ctx SpecContext) {
+		testName := "only-failover-selected"
+
+		By("Create a ManagedCluster")
+		mc := &clusterv1.ManagedCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: testName},
+			Spec:       clusterv1.ManagedClusterSpec{HubAcceptsClient: true},
+		}
+		Expect(testClient.Create(ctx, mc)).To(Succeed())
+
+		By("Update the MC status")
+		mc.Status = clusterv1.ManagedClusterStatus{Conditions: []metav1.Condition{
+			{
+				Type:               clusterv1.ManagedClusterConditionJoined,
+				Status:             metav1.ConditionTrue,
+				Reason:             "MC_Joined",
+				LastTransitionTime: metav1.Now(),
+			},
+			{
+				Type:               clusterv1.ManagedClusterConditionAvailable,
+				Status:             metav1.ConditionTrue,
+				Reason:             "MC_Available",
+				LastTransitionTime: metav1.Now(),
+			},
+		}}
+		Expect(testClient.Status().Update(ctx, mc)).To(Succeed())
+
+		By("Create a Namespace for the right DRPolicyControl")
+		rightNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName + "right-ns"}}
+		Expect(testClient.Create(ctx, rightNs)).To(Succeed())
+
+		By("Create the right DRPolicyControl")
+		rightDr := &ramenv1alpha1.DRPlacementControl{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testName + "right-dr",
+				Namespace: rightNs.Name,
+			},
+			Spec: ramenv1alpha1.DRPlacementControlSpec{
+				Action: ramenv1alpha1.ActionRelocate,
+			},
+		}
+		Expect(testClient.Create(ctx, rightDr))
+
+		By("Update the right DRPC status")
+		rightDr.Status = ramenv1alpha1.DRPlacementControlStatus{
+			PreferredDecision: ramenv1alpha1.PlacementDecision{
+				ClusterName: mc.Name,
+			},
+			Phase: ramenv1alpha1.Deployed,
+			Conditions: []metav1.Condition{
+				{
+					Type:               ramenv1alpha1.ConditionPeerReady,
+					Status:             metav1.ConditionTrue,
+					Reason:             "DR_Peer_Ready",
+					LastTransitionTime: metav1.Now(),
+				},
+			},
+		}
+		Expect(testClient.Status().Update(ctx, rightDr)).To(Succeed())
+
+		By("Create a Namespace for the wrong DRPolicyControl")
+		wrongNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName + "wrong-ns"}}
+		Expect(testClient.Create(ctx, wrongNs)).To(Succeed())
+
+		By("Create the right DRPolicyControl")
+		wrongDr := &ramenv1alpha1.DRPlacementControl{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testName + "wrong-dr",
+				Namespace: wrongNs.Name,
+			},
+			Spec: ramenv1alpha1.DRPlacementControlSpec{
+				Action: ramenv1alpha1.ActionRelocate,
+			},
+		}
+		Expect(testClient.Create(ctx, wrongDr))
+
+		By("Update the wrong DRPC status")
+		wrongDr.Status = ramenv1alpha1.DRPlacementControlStatus{
+			PreferredDecision: ramenv1alpha1.PlacementDecision{
+				ClusterName: "not_the_correct_managed_cluster", // NOTE DRPC not preferring the cluster we're testing
+			},
+			Phase: ramenv1alpha1.Deployed,
+			Conditions: []metav1.Condition{
+				{
+					Type:               ramenv1alpha1.ConditionPeerReady,
+					Status:             metav1.ConditionTrue,
+					Reason:             "DR_Peer_Ready",
+					LastTransitionTime: metav1.Now(),
+				},
+			},
+		}
+		Expect(testClient.Status().Update(ctx, wrongDr)).To(Succeed())
+
+		By("Reconcile for the MC")
+		res, err := drtController.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(mc)})
+		Expect(res.Requeue).To(BeFalse())
 		Expect(err).NotTo(HaveOccurred())
-		Expect(testClient.Status().Patch(ctx, drControlNs1, client.RawPatch(types.MergePatchType, drControlNs1Patch))).To(Succeed())
 
-		// patch application on the second namespace to report a phase NOT SUITABLE for a failover
-		drControlNs2Patch, err := json.Marshal(statusForPatching(targetSpoke2, ramenv1alpha1.Initiating, metav1.ConditionTrue))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(testClient.Status().Patch(ctx, drControlNs2, client.RawPatch(types.MergePatchType, drControlNs2Patch))).To(Succeed())
+		By("Verify the right DRPC was failed-over")
+		Eventually(func() error {
+			rightDrUpdate := &ramenv1alpha1.DRPlacementControl{}
+			if err := testClient.Get(ctx, client.ObjectKeyFromObject(rightDr), rightDrUpdate); err != nil {
+				return err
+			}
+			if rightDrUpdate.Spec.Action != ramenv1alpha1.ActionFailover {
+				return fmt.Errorf("not failed over")
+			}
+			return nil
+		}).Should(Succeed())
 
-		// reconcile event and expect success
-		result, err := sut.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: targetSpoke2}})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).NotTo(BeNil())
+		By("Verify the wrong DRPC was not failed-over")
+		Eventually(func() error {
+			wrongDrUpdate := &ramenv1alpha1.DRPlacementControl{}
+			if err := testClient.Get(ctx, client.ObjectKeyFromObject(wrongDr), wrongDrUpdate); err != nil {
+				return err
+			}
+			if wrongDrUpdate.Spec.Action != ramenv1alpha1.ActionRelocate {
+				return fmt.Errorf("not failed over")
+			}
+			return nil
+		}).Should(Succeed())
 
-		// verify the application from the first namespace is now set to fail-over
-		drControlNs1Sut := &ramenv1alpha1.DRPlacementControl{}
-		Expect(testClient.Get(ctx, types.NamespacedName{Name: drControlNs1.Name, Namespace: drControlNs1.Namespace}, drControlNs1Sut)).To(Succeed())
-		Expect(drControlNs1Sut.Spec.Action).To(Equal(ramenv1alpha1.ActionFailover))
-
-		// verify the application from the second namespace is still relocated
-		drControlNs2Sut := &ramenv1alpha1.DRPlacementControl{}
-		Expect(testClient.Get(ctx, types.NamespacedName{Name: drControlNs2.Name, Namespace: drControlNs2.Namespace}, drControlNs2Sut)).To(Succeed())
-		Expect(drControlNs2Sut.Spec.Action).To(Equal(ramenv1alpha1.ActionRelocate))
+		By("Cleanups")
+		Expect(testClient.Delete(ctx, wrongDr)).To(Succeed())
+		Expect(testClient.Delete(ctx, wrongNs)).To(Succeed())
+		Expect(testClient.Delete(ctx, rightDr)).To(Succeed())
+		Expect(testClient.Delete(ctx, rightNs)).To(Succeed())
+		Expect(testClient.Delete(ctx, mc)).To(Succeed())
 	})
 
-	Specify("Only patch applications with an available peer", func(ctx SpecContext) {
-		// patch application on the first namespace to be READY for failover
-		drControlNs1Patch, err := json.Marshal(statusForPatching(targetSpoke1, ramenv1alpha1.Deployed, metav1.ConditionTrue))
+	It("should only failover dr controls in a suitable phase", func(ctx SpecContext) {
+		testName := "only-failover-matching-phase"
+
+		By("Create a ManagedCluster")
+		mc := &clusterv1.ManagedCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: testName},
+			Spec:       clusterv1.ManagedClusterSpec{HubAcceptsClient: true},
+		}
+		Expect(testClient.Create(ctx, mc)).To(Succeed())
+
+		By("Update the MC status")
+		mc.Status = clusterv1.ManagedClusterStatus{Conditions: []metav1.Condition{
+			{
+				Type:               clusterv1.ManagedClusterConditionJoined,
+				Status:             metav1.ConditionTrue,
+				Reason:             "MC_Joined",
+				LastTransitionTime: metav1.Now(),
+			},
+			{
+				Type:               clusterv1.ManagedClusterConditionAvailable,
+				Status:             metav1.ConditionTrue,
+				Reason:             "MC_Available",
+				LastTransitionTime: metav1.Now(),
+			},
+		}}
+		Expect(testClient.Status().Update(ctx, mc)).To(Succeed())
+
+		By("Create a Namespace for the right DRPolicyControl")
+		rightNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName + "right-ns"}}
+		Expect(testClient.Create(ctx, rightNs)).To(Succeed())
+
+		By("Create the right DRPolicyControl")
+		rightDr := &ramenv1alpha1.DRPlacementControl{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testName + "right-dr",
+				Namespace: rightNs.Name,
+			},
+			Spec: ramenv1alpha1.DRPlacementControlSpec{
+				Action: ramenv1alpha1.ActionRelocate,
+			},
+		}
+		Expect(testClient.Create(ctx, rightDr))
+
+		By("Update the right DRPC status")
+		rightDr.Status = ramenv1alpha1.DRPlacementControlStatus{
+			PreferredDecision: ramenv1alpha1.PlacementDecision{
+				ClusterName: mc.Name,
+			},
+			Phase: ramenv1alpha1.Deploying,
+			Conditions: []metav1.Condition{
+				{
+					Type:               ramenv1alpha1.ConditionPeerReady,
+					Status:             metav1.ConditionTrue,
+					Reason:             "DR_Peer_Ready",
+					LastTransitionTime: metav1.Now(),
+				},
+			},
+		}
+		Expect(testClient.Status().Update(ctx, rightDr)).To(Succeed())
+
+		By("Create a Namespace for the wrong DRPolicyControl")
+		wrongNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName + "wrong-ns"}}
+		Expect(testClient.Create(ctx, wrongNs)).To(Succeed())
+
+		By("Create the right DRPolicyControl")
+		wrongDr := &ramenv1alpha1.DRPlacementControl{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testName + "wrong-dr",
+				Namespace: wrongNs.Name,
+			},
+			Spec: ramenv1alpha1.DRPlacementControlSpec{
+				Action: ramenv1alpha1.ActionRelocate,
+			},
+		}
+		Expect(testClient.Create(ctx, wrongDr))
+
+		By("Update the wrong DRPC status")
+		wrongDr.Status = ramenv1alpha1.DRPlacementControlStatus{
+			PreferredDecision: ramenv1alpha1.PlacementDecision{
+				ClusterName: mc.Name, // NOTE both DRPCs preferring the cluster we're testing
+			},
+			Phase: ramenv1alpha1.Initiating, // NOTE DRPC not in a phase suitable for failing over
+			Conditions: []metav1.Condition{
+				{
+					Type:               ramenv1alpha1.ConditionPeerReady,
+					Status:             metav1.ConditionTrue,
+					Reason:             "DR_Peer_Ready",
+					LastTransitionTime: metav1.Now(),
+				},
+			},
+		}
+		Expect(testClient.Status().Update(ctx, wrongDr)).To(Succeed())
+
+		By("Reconcile for the MC")
+		res, err := drtController.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(mc)})
+		Expect(res.Requeue).To(BeFalse())
 		Expect(err).NotTo(HaveOccurred())
-		Expect(testClient.Status().Patch(ctx, drControlNs1, client.RawPatch(types.MergePatchType, drControlNs1Patch))).To(Succeed())
 
-		// patch application on the second namespace to report an UNAVAILABLE PEER
-		drControlNs2Patch, err := json.Marshal(statusForPatching(targetSpoke1, ramenv1alpha1.Deployed, metav1.ConditionFalse))
+		By("Verify the right DRPC was failed-over")
+		Eventually(func() error {
+			rightDrUpdate := &ramenv1alpha1.DRPlacementControl{}
+			if err := testClient.Get(ctx, client.ObjectKeyFromObject(rightDr), rightDrUpdate); err != nil {
+				return err
+			}
+			if rightDrUpdate.Spec.Action != ramenv1alpha1.ActionFailover {
+				return fmt.Errorf("not failed over")
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("Verify the wrong DRPC was not failed-over")
+		Eventually(func() error {
+			wrongDrUpdate := &ramenv1alpha1.DRPlacementControl{}
+			if err := testClient.Get(ctx, client.ObjectKeyFromObject(wrongDr), wrongDrUpdate); err != nil {
+				return err
+			}
+			if wrongDrUpdate.Spec.Action != ramenv1alpha1.ActionRelocate {
+				return fmt.Errorf("not failed over")
+			}
+			return nil
+		}).Should(Succeed())
+
+		By("Cleanups")
+		Expect(testClient.Delete(ctx, wrongDr)).To(Succeed())
+		Expect(testClient.Delete(ctx, wrongNs)).To(Succeed())
+		Expect(testClient.Delete(ctx, rightDr)).To(Succeed())
+		Expect(testClient.Delete(ctx, rightNs)).To(Succeed())
+		Expect(testClient.Delete(ctx, mc)).To(Succeed())
+	})
+
+	It("should only failover dr controls with peer in a ready state", func(ctx SpecContext) {
+		testName := "only-failover-ready-peers"
+
+		By("Create a ManagedCluster")
+		mc := &clusterv1.ManagedCluster{
+			ObjectMeta: metav1.ObjectMeta{Name: testName},
+			Spec:       clusterv1.ManagedClusterSpec{HubAcceptsClient: true},
+		}
+		Expect(testClient.Create(ctx, mc)).To(Succeed())
+
+		By("Update the MC status")
+		mc.Status = clusterv1.ManagedClusterStatus{Conditions: []metav1.Condition{
+			{
+				Type:               clusterv1.ManagedClusterConditionJoined,
+				Status:             metav1.ConditionTrue,
+				Reason:             "MC_Joined",
+				LastTransitionTime: metav1.Now(),
+			},
+			{
+				Type:               clusterv1.ManagedClusterConditionAvailable,
+				Status:             metav1.ConditionTrue,
+				Reason:             "MC_Available",
+				LastTransitionTime: metav1.Now(),
+			},
+		}}
+		Expect(testClient.Status().Update(ctx, mc)).To(Succeed())
+
+		By("Create a Namespace for the right DRPolicyControl")
+		rightNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName + "right-ns"}}
+		Expect(testClient.Create(ctx, rightNs)).To(Succeed())
+
+		By("Create the right DRPolicyControl")
+		rightDr := &ramenv1alpha1.DRPlacementControl{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testName + "right-dr",
+				Namespace: rightNs.Name,
+			},
+			Spec: ramenv1alpha1.DRPlacementControlSpec{
+				Action: ramenv1alpha1.ActionRelocate,
+			},
+		}
+		Expect(testClient.Create(ctx, rightDr))
+
+		By("Update the right DRPC status")
+		rightDr.Status = ramenv1alpha1.DRPlacementControlStatus{
+			PreferredDecision: ramenv1alpha1.PlacementDecision{
+				ClusterName: mc.Name,
+			},
+			Phase: ramenv1alpha1.Deployed,
+			Conditions: []metav1.Condition{
+				{
+					Type:               ramenv1alpha1.ConditionPeerReady,
+					Status:             metav1.ConditionTrue,
+					Reason:             "DR_Peer_Ready",
+					LastTransitionTime: metav1.Now(),
+				},
+			},
+		}
+		Expect(testClient.Status().Update(ctx, rightDr)).To(Succeed())
+
+		By("Create a Namespace for the wrong DRPolicyControl")
+		wrongNs := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName + "wrong-ns"}}
+		Expect(testClient.Create(ctx, wrongNs)).To(Succeed())
+
+		By("Create the right DRPolicyControl")
+		wrongDr := &ramenv1alpha1.DRPlacementControl{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testName + "wrong-dr",
+				Namespace: wrongNs.Name,
+			},
+			Spec: ramenv1alpha1.DRPlacementControlSpec{
+				Action: ramenv1alpha1.ActionRelocate,
+			},
+		}
+		Expect(testClient.Create(ctx, wrongDr))
+
+		By("Update the wrong DRPC status")
+		wrongDr.Status = ramenv1alpha1.DRPlacementControlStatus{
+			PreferredDecision: ramenv1alpha1.PlacementDecision{
+				ClusterName: mc.Name, // NOTE both DRPCs preferring the cluster we're testing
+			},
+			Phase: ramenv1alpha1.Deployed, // NOTE DRPC in a phase suitable for failing over
+			Conditions: []metav1.Condition{
+				{
+					Type:               ramenv1alpha1.ConditionPeerReady,
+					Status:             metav1.ConditionFalse, // NOTE DRPC peer not in a ready state
+					Reason:             "DR_Peer_Not_Ready",
+					LastTransitionTime: metav1.Now(),
+				},
+			},
+		}
+		Expect(testClient.Status().Update(ctx, wrongDr)).To(Succeed())
+
+		By("Reconcile for the MC")
+		res, err := drtController.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(mc)})
+		Expect(res.Requeue).To(BeFalse())
 		Expect(err).NotTo(HaveOccurred())
-		Expect(testClient.Status().Patch(ctx, drControlNs2, client.RawPatch(types.MergePatchType, drControlNs2Patch))).To(Succeed())
 
-		// reconcile event and expect failure
-		result, err := sut.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: targetSpoke1}})
-		Expect(err).To(MatchError("failed to failover one or more DR placement controls"))
-		Expect(result).NotTo(BeNil())
+		By("Verify the right DRPC was failed-over")
+		Eventually(func() error {
+			rightDrUpdate := &ramenv1alpha1.DRPlacementControl{}
+			if err := testClient.Get(ctx, client.ObjectKeyFromObject(rightDr), rightDrUpdate); err != nil {
+				return err
+			}
+			if rightDrUpdate.Spec.Action != ramenv1alpha1.ActionFailover {
+				return fmt.Errorf("not failed over")
+			}
+			return nil
+		}).Should(Succeed())
 
-		// verify the application from the first namespace is now set to fail-over
-		drControlNs1Sut := &ramenv1alpha1.DRPlacementControl{}
-		Expect(testClient.Get(ctx, types.NamespacedName{Name: drControlNs1.Name, Namespace: drControlNs1.Namespace}, drControlNs1Sut)).To(Succeed())
-		Expect(drControlNs1Sut.Spec.Action).To(Equal(ramenv1alpha1.ActionFailover))
+		By("Verify the wrong DRPC was not failed-over")
+		Eventually(func() error {
+			wrongDrUpdate := &ramenv1alpha1.DRPlacementControl{}
+			if err := testClient.Get(ctx, client.ObjectKeyFromObject(wrongDr), wrongDrUpdate); err != nil {
+				return err
+			}
+			if wrongDrUpdate.Spec.Action != ramenv1alpha1.ActionRelocate {
+				return fmt.Errorf("not failed over")
+			}
+			return nil
+		}).Should(Succeed())
 
-		// verify the application from the second namespace is still relocated
-		drControlNs2Sut := &ramenv1alpha1.DRPlacementControl{}
-		Expect(testClient.Get(ctx, types.NamespacedName{Name: drControlNs2.Name, Namespace: drControlNs2.Namespace}, drControlNs2Sut)).To(Succeed())
-		Expect(drControlNs2Sut.Spec.Action).To(Equal(ramenv1alpha1.ActionRelocate))
+		By("Cleanups")
+		Expect(testClient.Delete(ctx, wrongDr)).To(Succeed())
+		Expect(testClient.Delete(ctx, wrongNs)).To(Succeed())
+		Expect(testClient.Delete(ctx, rightDr)).To(Succeed())
+		Expect(testClient.Delete(ctx, rightNs)).To(Succeed())
+		Expect(testClient.Delete(ctx, mc)).To(Succeed())
 	})
 })

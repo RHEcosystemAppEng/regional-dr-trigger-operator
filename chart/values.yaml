@@ -2,7 +2,7 @@
 operator:
   replicas: 1
   rdrtrigger:
-    image: quay.io/tfigenbl/regional-dr-trigger-operator:0.2.0
+    image: quay.io/ecosystem-appeng/regional-dr-trigger-operator:0.3.0
     imagePullPolicy: IfNotPresent
     resources:
       limits:
