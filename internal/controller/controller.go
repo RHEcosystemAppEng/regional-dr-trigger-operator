@@ -83,8 +83,8 @@ func (r *DRTriggerController) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	if !meta.IsStatusConditionTrue(mc.Status.Conditions, clusterv1.ManagedClusterConditionAvailable) {
-		logger.Info("managed cluster is not available")
+	if meta.IsStatusConditionTrue(mc.Status.Conditions, clusterv1.ManagedClusterConditionAvailable) {
+		logger.Info("managed cluster is available, no failing over required")
 		return ctrl.Result{}, nil
 	}
 

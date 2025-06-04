@@ -4,3 +4,11 @@ resources:
 - namespace.yaml
 - deployment.yaml
 - metrics-service.yaml
+
+images:
+- name: controller
+  newName: quay.io/ecosystem-appeng/regional-dr-trigger-operator
+  newTag: 0.3.0
+replicas:
+- count: 1
+  name: operator
