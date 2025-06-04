@@ -1,19 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
 namespace: regional-dr-trigger
 namePrefix: regional-dr-trigger-
+
 resources:
 - ../rbac
 - ../manager
-images:
-- name: controller
-  newName: quay.io/ecosystem-appeng/regional-dr-trigger-operator
-  newTag: 0.3.0
-replicas:
-- count: 1
-  name: operator
-components:
-- ../components/prometheus
+- ../prometheus
+
 labels:
 - includeSelectors: true
   includeTemplates: true

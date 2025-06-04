@@ -56,7 +56,7 @@ var _ = Context("DR Trigger Controller", func() {
 		Expect(testClient.Delete(ctx, mc)).To(Succeed())
 	})
 
-	It("should not reconcile if the managed cluster is not available", func(ctx SpecContext) {
+	It("should not reconcile if the managed cluster is available", func(ctx SpecContext) {
 		testName := "mc-not-available"
 
 		By("Create a ManagedCluster")
@@ -67,12 +67,20 @@ var _ = Context("DR Trigger Controller", func() {
 		Expect(testClient.Create(ctx, mc)).To(Succeed())
 
 		By("Update the MC status")
-		mc.Status = clusterv1.ManagedClusterStatus{Conditions: []metav1.Condition{{
-			Type:               clusterv1.ManagedClusterConditionJoined,
-			Status:             metav1.ConditionTrue,
-			Reason:             "MC_Joined",
-			LastTransitionTime: metav1.Now(),
-		}}}
+		mc.Status = clusterv1.ManagedClusterStatus{Conditions: []metav1.Condition{
+			{
+				Type:               clusterv1.ManagedClusterConditionJoined,
+				Status:             metav1.ConditionTrue,
+				Reason:             "MC_Joined",
+				LastTransitionTime: metav1.Now(),
+			},
+			{
+				Type:               clusterv1.ManagedClusterConditionAvailable,
+				Status:             metav1.ConditionFalse,
+				Reason:             "MC_Not_Available",
+				LastTransitionTime: metav1.Now(),
+			},
+		}}
 		Expect(testClient.Status().Update(ctx, mc)).To(Succeed())
 
 		By("Reconcile for the MC")
@@ -104,8 +112,8 @@ var _ = Context("DR Trigger Controller", func() {
 			},
 			{
 				Type:               clusterv1.ManagedClusterConditionAvailable,
-				Status:             metav1.ConditionTrue,
-				Reason:             "MC_Available",
+				Status:             metav1.ConditionFalse,
+				Reason:             "MC_Not_Available",
 				LastTransitionTime: metav1.Now(),
 			},
 		}}
@@ -234,8 +242,8 @@ var _ = Context("DR Trigger Controller", func() {
 			},
 			{
 				Type:               clusterv1.ManagedClusterConditionAvailable,
-				Status:             metav1.ConditionTrue,
-				Reason:             "MC_Available",
+				Status:             metav1.ConditionFalse,
+				Reason:             "MC_Not_Available",
 				LastTransitionTime: metav1.Now(),
 			},
 		}}
@@ -364,8 +372,8 @@ var _ = Context("DR Trigger Controller", func() {
 			},
 			{
 				Type:               clusterv1.ManagedClusterConditionAvailable,
-				Status:             metav1.ConditionTrue,
-				Reason:             "MC_Available",
+				Status:             metav1.ConditionFalse,
+				Reason:             "MC_Not_Available",
 				LastTransitionTime: metav1.Now(),
 			},
 		}}
